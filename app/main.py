@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import sys
 from pathlib import Path
+from typing import Any
 
 import pandas as pd
 import streamlit as st
@@ -10,26 +11,29 @@ ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-from src.ai.assistant import answer_question
-from src.features.automation import simulate_automation_impact
+from src.ai.assistant import LOW_CONFIDENCE_ANSWER, answer_question
+from src.features.automation import AutomationImpact, simulate_automation_impact
 from src.features.dashboard import (
     build_dashboard_metrics,
     ensure_metrics_state,
     record_diagnosis,
     record_question_answered,
 )
+from src.features.modes import CompanyHRPlan, TeacherModePlan
 from src.features.modes import generate_company_hr_plan, generate_teacher_mode_plan
 from src.features.planning import (
+    PersonalizedStudyPath,
+    StudyPathItem,
     build_personalized_study_path,
     build_plan,
     recommend_study_path,
 )
-from src.features.readiness import calculate_readiness_score
-from src.features.skills import diagnose_skills
+from src.features.readiness import ReadinessScore, calculate_readiness_score
+from src.features.skills import SkillDiagnosis, diagnose_skills
 from src.knowledge.loader import load_documents
-from src.knowledge.rag import RAGPipeline
+from src.knowledge.rag import RAGPipeline, RetrievedDocument
 from src.ui.markdown_export import build_markdown_report, build_section_markdown
-from src.utils.config import get_settings
+from src.utils.config import Settings, get_settings
 
 
 st.set_page_config(
@@ -40,28 +44,108 @@ st.set_page_config(
 )
 
 
+EXAMPLE_QUESTIONS = [
+    "Como devo me preparar para a Industria 4.0?",
+    "Quais competencias devo priorizar para trabalhar com dados industriais?",
+    "Como a automacao pode impactar tarefas repetitivas no meu cargo?",
+]
+
+SKILL_OPTIONS = [
+    "Alfabetizacao digital",
+    "Python",
+    "Dados",
+    "Automacao",
+    "IA generativa",
+    "Robotica",
+    "IoT",
+    "GitHub/portfolio",
+    "Comunicacao",
+    "Adaptabilidade",
+    "Gestao de mudanca",
+]
+
+
 @st.cache_resource(show_spinner=False)
 def get_rag_pipeline() -> RAGPipeline:
     docs = load_documents(ROOT / "data" / "knowledge")
     return RAGPipeline.from_documents(docs)
 
 
-def render_header() -> None:
-    st.title("Work4.0 AI")
-    st.caption("Inteligencia de carreira para a era da Industria 4.0")
+def render_page_styles() -> None:
+    st.markdown(
+        """
+        <style>
+        .block-container {padding-top: 2rem; padding-bottom: 3rem;}
+        div[data-testid="stMetric"] {
+            background: #ffffff;
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+            padding: 14px 16px;
+        }
+        div[data-testid="stMetricLabel"] {font-weight: 650;}
+        .w40-hero {
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+            padding: 28px 30px;
+            background: linear-gradient(135deg, #f8fafc 0%, #eef6f3 100%);
+            margin-bottom: 18px;
+        }
+        .w40-hero h1 {margin-bottom: 8px; letter-spacing: 0;}
+        .w40-hero p {font-size: 1.02rem; color: #475569; max-width: 880px;}
+        .w40-eyebrow {
+            color: #0f766e;
+            font-weight: 700;
+            text-transform: uppercase;
+            font-size: 0.78rem;
+            margin-bottom: 8px;
+        }
+        .w40-section-note {color: #64748b; margin-top: -8px;}
+        </style>
+        """,
+        unsafe_allow_html=True,
+    )
+
+
+def render_hero(profile: dict[str, object], ai_mode: str) -> None:
+    st.markdown(
+        f"""
+        <section class="w40-hero">
+            <div class="w40-eyebrow">MVP de inteligencia de carreira</div>
+            <h1>Work4.0 AI</h1>
+            <p>
+                Diagnostico de competencias, prontidao para Industria 4.0,
+                simulacao de impacto da automacao e planos praticos para
+                estudantes, profissionais, professores e equipes de RH.
+            </p>
+            <p>
+                Perfil ativo: <strong>{profile['role']}</strong> | IA:
+                <strong>{ai_mode}</strong> | Objetivo:
+                <strong>{profile['career_goal']}</strong>
+            </p>
+        </section>
+        """,
+        unsafe_allow_html=True,
+    )
 
 
 def render_sidebar() -> dict[str, object]:
-    st.sidebar.header("Perfil")
+    st.sidebar.title("Configurar perfil")
+    st.sidebar.caption("Ajuste os dados para personalizar diagnostico, plano e RAG.")
     role = st.sidebar.selectbox(
-        "Modo",
+        "Perfil",
         ["Estudante", "Trabalhador", "Professor", "Empresa / RH"],
+        help="Define o tom do plano e das recomendacoes.",
     )
     career_goal = st.sidebar.text_input(
         "Objetivo profissional",
         value="Analista de dados industriais",
+        help="Exemplo: tecnico de automacao, analista de dados, professor de tecnologia.",
     )
-    current_role = st.sidebar.text_input("Cargo ou area atual", value="Operacoes")
+    current_role = st.sidebar.text_input(
+        "Cargo ou area atual",
+        value="Operacoes",
+        help="Use uma area real para melhorar o simulador de automacao.",
+    )
     current_level = st.sidebar.selectbox(
         "Nivel atual",
         ["Inicial", "Basico", "Intermediario", "Avancado"],
@@ -70,29 +154,24 @@ def render_sidebar() -> dict[str, object]:
         "Maturidade digital",
         ["Inicial", "Basico", "Intermediario", "Avancado"],
     )
-    weekly_hours = st.sidebar.slider("Horas de estudo por semana", 1, 20, 6)
-    timeframe_weeks = st.sidebar.slider("Prazo da trilha (semanas)", 4, 12, 6)
+    weekly_hours = st.sidebar.slider(
+        "Horas de estudo por semana",
+        1,
+        20,
+        6,
+        help="Usado para definir ritmo e profundidade da trilha.",
+    )
+    timeframe_weeks = st.sidebar.slider("Prazo da trilha em semanas", 4, 12, 6)
     selected_skills = st.sidebar.multiselect(
         "Competencias atuais",
-        [
-            "Alfabetizacao digital",
-            "Python",
-            "Dados",
-            "Automacao",
-            "IA generativa",
-            "Robotica",
-            "IoT",
-            "GitHub/portfolio",
-            "Comunicacao",
-            "Adaptabilidade",
-            "Gestao de mudanca",
-        ],
+        SKILL_OPTIONS,
         default=["Dados", "Comunicacao"],
     )
     main_tasks_text = st.sidebar.text_area(
         "Principais tarefas",
         value="preencher relatorio\nconferir dados\nresolver problemas operacionais",
-        height=110,
+        height=120,
+        help="Digite uma tarefa por linha para o simulador.",
     )
     return {
         "role": role,
@@ -103,13 +182,15 @@ def render_sidebar() -> dict[str, object]:
         "weekly_hours": weekly_hours,
         "timeframe_weeks": timeframe_weeks,
         "selected_skills": selected_skills,
-        "main_tasks": [line.strip() for line in main_tasks_text.splitlines() if line.strip()],
+        "main_tasks": [
+            line.strip() for line in main_tasks_text.splitlines() if line.strip()
+        ],
     }
 
 
-def render_dashboard(profile: dict[str, object], rag: RAGPipeline) -> None:
-    ensure_metrics_state(st.session_state)
-    settings = get_settings()
+def build_view_model(
+    profile: dict[str, object], settings: Settings
+) -> dict[str, Any]:
     selected_skills = list(profile["selected_skills"])
     diagnosis = diagnose_skills(selected_skills, str(profile["career_goal"]))
     readiness = calculate_readiness_score(
@@ -141,184 +222,474 @@ def render_dashboard(profile: dict[str, object], rag: RAGPipeline) -> None:
         gaps=diagnosis.priority_skills or diagnosis.gaps,
     )
     plan = build_plan(study_path, str(profile["career_goal"]), str(profile["role"]))
+    teacher_plan = generate_teacher_mode_plan(str(profile["career_goal"]))
+    hr_plan = generate_company_hr_plan(
+        str(profile["current_role"]),
+        str(profile["digital_maturity"]),
+    )
     ai_mode = "online" if settings.openai_api_key else "offline"
     metrics = build_dashboard_metrics(st.session_state, str(profile["role"]), ai_mode)
+    return {
+        "diagnosis": diagnosis,
+        "readiness": readiness,
+        "impact": impact,
+        "study_path": study_path,
+        "personalized_path": personalized_path,
+        "plan": plan,
+        "teacher_plan": teacher_plan,
+        "hr_plan": hr_plan,
+        "ai_mode": ai_mode,
+        "metrics": metrics,
+    }
 
-    score_col, impact_col, gaps_col, mode_col = st.columns(4)
+
+def render_key_metrics(
+    readiness: ReadinessScore,
+    impact: AutomationImpact,
+    diagnosis: SkillDiagnosis,
+    ai_mode: str,
+) -> None:
+    score_col, impact_col, priority_col, mode_col = st.columns(4)
     score_col.metric("Work4.0 Score", f"{readiness.score}/100")
-    impact_col.metric("Impacto de automacao", impact.level)
-    gaps_col.metric("Prioridades", len(diagnosis.priority_skills))
+    impact_col.metric("Risco de automacao", impact.risk_level)
+    priority_col.metric("Skills prioritarias", len(diagnosis.priority_skills))
     mode_col.metric("Modo IA", ai_mode)
-
     st.progress(readiness.score / 100)
-    st.write(readiness.summary)
+    st.caption(readiness.summary)
 
-    metric_cols = st.columns(5)
-    metric_cols[0].metric("Perguntas", metrics.questions_answered)
-    metric_cols[1].metric("Diagnosticos", metrics.diagnoses_generated)
-    metric_cols[2].metric("Media readiness", f"{metrics.average_readiness_score:.1f}")
-    metric_cols[3].metric("Perfil", metrics.selected_profile)
-    metric_cols[4].metric("Skills frequentes", len(metrics.most_recommended_skills))
 
-    tab_ai, tab_skills, tab_plan, tab_modes, tab_export = st.tabs(
-        ["Assistente RAG", "Diagnostico", "Plano", "Modos", "Exportar"]
+def render_overview(
+    profile: dict[str, object],
+    readiness: ReadinessScore,
+    diagnosis: SkillDiagnosis,
+    impact: AutomationImpact,
+    personalized_path: PersonalizedStudyPath,
+) -> None:
+    st.header("Visao geral")
+    st.markdown(
+        '<p class="w40-section-note">Resumo executivo para orientar a proxima decisao.</p>',
+        unsafe_allow_html=True,
+    )
+    left, right = st.columns([1.1, 0.9])
+    with left.container(border=True):
+        st.subheader("Prioridade do momento")
+        st.write(diagnosis.next_action)
+        st.write("Projeto sugerido:")
+        st.info(personalized_path.portfolio_project_suggestion)
+    with right.container(border=True):
+        st.subheader("Contexto analisado")
+        st.write(f"Perfil: {profile['role']}")
+        st.write(f"Objetivo: {profile['career_goal']}")
+        st.write(f"Area atual: {profile['current_role']}")
+        st.write(f"Maturidade digital: {profile['digital_maturity']}")
+    st.subheader("Leitura rapida")
+    col_a, col_b, col_c = st.columns(3)
+    render_list_card(col_a, "Pontos fortes", diagnosis.strengths)
+    render_list_card(col_b, "Gaps principais", diagnosis.gaps[:5])
+    render_list_card(col_c, "Plano de adaptacao", impact.adaptation_plan)
+    st.subheader("Scores de prontidao")
+    render_readiness_scores(readiness)
+
+
+def render_assistant_tab(
+    profile: dict[str, object], rag: RAGPipeline, settings: Settings
+) -> None:
+    st.header("Assistente RAG")
+    st.caption("Respostas em portugues com fontes internas da base de conhecimento.")
+    st.write("Perguntas exemplo")
+    example_cols = st.columns(3)
+    for index, question in enumerate(EXAMPLE_QUESTIONS):
+        if example_cols[index].button(question, key=f"example_question_{index}"):
+            st.session_state["rag_question"] = question
+    st.session_state.setdefault("rag_question", EXAMPLE_QUESTIONS[0])
+    st.text_area(
+        "Sua pergunta",
+        key="rag_question",
+        height=120,
+        help="Pergunte sobre carreira, automacao, IA, robotica ou competencias.",
+    )
+    ask_col, hint_col = st.columns([0.25, 0.75])
+    if ask_col.button("Responder", type="primary", use_container_width=True):
+        response = answer_question(
+            str(st.session_state["rag_question"]),
+            rag,
+            settings,
+            user_profile=profile,
+        )
+        record_question_answered(st.session_state)
+        st.session_state["last_answer"] = response.answer
+        st.session_state["last_sources"] = response.sources
+    hint_col.caption("Use perguntas especificas para obter citacoes mais precisas.")
+
+    answer = st.session_state.get("last_answer")
+    sources = st.session_state.get("last_sources", [])
+    if answer:
+        if answer == LOW_CONFIDENCE_ANSWER:
+            st.warning(
+                "Nao encontrei contexto suficiente na base interna para responder "
+                "com precisao. Tente reformular ou ampliar a base de conhecimento."
+            )
+        render_structured_answer(str(answer))
+        render_sources(list(sources))
+
+
+def render_structured_answer(answer: str) -> None:
+    st.subheader("Resposta estruturada")
+    sections = split_answer_sections(answer)
+    if not sections:
+        st.write(answer)
+        return
+    for title, content in sections.items():
+        with st.container(border=True):
+            st.markdown(f"**{title}**")
+            st.write(content or "Sem conteudo adicional.")
+
+
+def split_answer_sections(answer: str) -> dict[str, str]:
+    section_titles = [
+        "Resposta direta",
+        "Explicação",
+        "Impacto no futuro do trabalho",
+        "Competências recomendadas",
+        "Próxima ação prática",
+        "Fontes internas usadas",
+        "Limitação da resposta",
+    ]
+    lines = answer.splitlines()
+    sections: dict[str, list[str]] = {}
+    current_title = ""
+    for line in lines:
+        stripped = line.strip()
+        if stripped in section_titles:
+            current_title = stripped
+            sections[current_title] = []
+        elif current_title:
+            sections[current_title].append(line)
+    return {
+        title: "\n".join(content).strip()
+        for title, content in sections.items()
+    }
+
+
+def render_sources(sources: list[RetrievedDocument]) -> None:
+    st.subheader("Fontes internas")
+    if not sources:
+        st.info("Nenhuma fonte relevante foi retornada para esta resposta.")
+        return
+    for source in sources:
+        with st.container(border=True):
+            meta_col, score_col = st.columns([0.75, 0.25])
+            meta_col.markdown(f"**{source.title}**")
+            meta_col.caption(
+                f"Arquivo `{source.source_filename}` | chunk `{source.chunk_index}`"
+            )
+            score_col.metric("Score", f"{source.score:.4f}")
+            st.write(source.excerpt)
+
+
+def render_diagnosis_tab(
+    diagnosis: SkillDiagnosis,
+    readiness: ReadinessScore,
+) -> None:
+    st.header("Diagnostico")
+    st.caption("Competencias atuais, lacunas e prontidao Work4.0.")
+    if st.button("Registrar diagnostico", type="primary"):
+        record_diagnosis(st.session_state, readiness.score, diagnosis.priority_skills)
+        st.success("Diagnostico registrado nas metricas da sessao.")
+    render_readiness_scores(readiness)
+    col_a, col_b, col_c = st.columns(3)
+    render_list_card(col_a, "Pontos fortes", diagnosis.strengths)
+    render_list_card(col_b, "Lacunas", diagnosis.gaps)
+    render_list_card(col_c, "Prioridades", diagnosis.priority_skills)
+    with st.container(border=True):
+        st.subheader("Proxima acao")
+        st.write(diagnosis.next_action)
+    st.subheader("Mapa de competencias")
+    st.dataframe(
+        pd.DataFrame(
+            {
+                "Competencia": diagnosis.required_skills,
+                "Status": [
+                    "Presente" if skill not in diagnosis.gaps else "Priorizar"
+                    for skill in diagnosis.required_skills
+                ],
+            }
+        ),
+        use_container_width=True,
+        hide_index=True,
     )
 
-    with tab_ai:
-        question = st.text_area(
-            "Pergunte sobre carreira, automacao, IA, robotica ou competencias",
-            value="Como devo me preparar para a Industria 4.0?",
-            height=100,
-        )
-        if st.button("Responder", type="primary"):
-            response = answer_question(question, rag, settings, user_profile=profile)
-            record_question_answered(st.session_state)
-            st.subheader("Resposta")
-            st.write(response.answer)
-            st.subheader("Fontes")
-            if not response.sources:
-                st.info("Nenhuma fonte relevante encontrada na base local.")
-            for source in response.sources:
-                st.markdown(
-                    "- "
-                    f"**{source.title}** | arquivo `{source.source_filename}` | "
-                    f"chunk `{source.chunk_index}` | score `{source.score:.4f}`\n\n"
-                    f"  {source.excerpt}"
-                )
 
-    with tab_skills:
-        st.subheader("Diagnostico de competencias")
-        st.write(diagnosis.summary)
-        if st.button("Registrar diagnostico"):
-            record_diagnosis(st.session_state, readiness.score, diagnosis.priority_skills)
-            st.success("Diagnostico registrado nas metricas da sessao.")
-        st.dataframe(
-            pd.DataFrame(
-                {
-                    "Competencia": diagnosis.required_skills,
-                    "Status": [
-                        "Presente" if skill in diagnosis.strengths or skill in selected_skills else "Priorizar"
-                        for skill in diagnosis.required_skills
-                    ],
-                }
-            ),
-            use_container_width=True,
-            hide_index=True,
-        )
-        st.write("Proxima acao:", diagnosis.next_action)
-        st.subheader("Scores de prontidao")
-        st.dataframe(
-            pd.DataFrame(
-                [
-                    ["Digital", readiness.digital_readiness_score],
-                    ["IA", readiness.ai_readiness_score],
-                    ["Automacao", readiness.automation_readiness_score],
-                    ["Adaptabilidade", readiness.career_adaptability_score],
-                    ["Geral Work4.0", readiness.general_work40_score],
-                ],
-                columns=["Dimensao", "Score"],
-            ),
-            use_container_width=True,
-            hide_index=True,
-        )
-        st.subheader("Simulador de impacto")
-        st.write(impact.summary)
-        st.write(f"Oportunidade: {impact.opportunity_level}")
-        st.write("Tarefas mais expostas:")
-        for task in impact.tasks_more_likely_automated:
-            st.markdown(f"- {task}")
-        st.write("Tarefas com julgamento humano:")
-        for task in impact.human_judgment_tasks:
-            st.markdown(f"- {task}")
-        st.write("Plano de adaptacao:")
-        for action in impact.adaptation_plan:
-            st.markdown(f"- {action}")
+def render_readiness_scores(readiness: ReadinessScore) -> None:
+    score_data = pd.DataFrame(
+        [
+            ["Digital", readiness.digital_readiness_score],
+            ["IA", readiness.ai_readiness_score],
+            ["Automacao", readiness.automation_readiness_score],
+            ["Adaptabilidade", readiness.career_adaptability_score],
+            ["Geral Work4.0", readiness.general_work40_score],
+        ],
+        columns=["Dimensao", "Score"],
+    )
+    st.dataframe(score_data, use_container_width=True, hide_index=True)
 
-    with tab_plan:
-        st.subheader("Trilha personalizada")
+
+def render_study_plan_tab(
+    personalized_path: PersonalizedStudyPath,
+    plan: dict[str, list[str]],
+) -> None:
+    st.header("Plano de estudos")
+    st.caption("Trilha semanal, entregaveis praticos e plano 30/60/90 dias.")
+    with st.container(border=True):
+        st.subheader("Projeto de portfolio")
         st.write(personalized_path.portfolio_project_suggestion)
-        for item in personalized_path.weekly_path:
-            st.markdown(
-                f"- **Semana {item.week} | {item.skill}**: {item.objective} "
-                f"Entrega: {item.deliverable}."
-            )
-        st.subheader("Plano 30/60/90 dias")
-        for phase, actions in plan.items():
-            st.markdown(f"**{phase}**")
-            for action in actions:
-                st.markdown(f"- {action}")
+    st.subheader("Trilha semanal")
+    for item in personalized_path.weekly_path:
+        with st.container(border=True):
+            st.markdown(f"**Semana {item.week}: {item.skill}**")
+            st.write(f"Objetivo: {item.objective}")
+            st.write(f"Entrega: {item.deliverable}")
+            st.caption(item.recommendation)
+    st.subheader("Plano 30/60/90")
+    render_phase_plan(plan)
 
-    with tab_modes:
-        if profile["role"] == "Professor":
-            teacher_plan = generate_teacher_mode_plan(str(profile["career_goal"]))
-            st.subheader("Teacher mode")
-            st.write("Objetivos de aprendizagem:")
-            for item in teacher_plan.learning_objectives:
-                st.markdown(f"- {item}")
-            st.write("Atividade:", teacher_plan.class_activity)
-            st.write("Perguntas para debate:")
-            for question in teacher_plan.debate_questions:
-                st.markdown(f"- {question}")
-            st.write("Projeto pratico:", teacher_plan.practical_project)
-            st.write("Criterios de avaliacao:")
-            for criterion in teacher_plan.evaluation_criteria:
-                st.markdown(f"- {criterion}")
-        elif profile["role"] == "Empresa / RH":
-            hr_plan = generate_company_hr_plan(
-                str(profile["current_role"]),
-                str(profile["digital_maturity"]),
-            )
-            st.subheader("Company / HR mode")
-            st.write(hr_plan.digital_maturity_diagnosis)
-            st.write("Oportunidades de automacao:")
-            for item in hr_plan.automation_opportunities:
-                st.markdown(f"- {item}")
-            st.write("Plano de treinamento:")
-            for item in hr_plan.training_plan:
-                st.markdown(f"- {item}")
-            st.write("Indicadores de sucesso:")
-            for item in hr_plan.success_indicators:
-                st.markdown(f"- {item}")
-        else:
-            st.subheader("Modo individual")
-            st.write(
-                "Concentre-se nas competencias com maior impacto no objetivo "
-                "profissional e execute o plano semanalmente."
-            )
 
-    with tab_export:
-        report = build_markdown_report(
-            profile=profile,
-            diagnosis=diagnosis,
-            readiness=readiness,
-            impact=impact,
-            study_path=study_path,
-            plan=plan,
+def render_automation_tab(
+    profile: dict[str, object], selected_skills: list[str], default_impact: AutomationImpact
+) -> None:
+    st.header("Simulador de automacao")
+    st.caption("Analise tarefas, risco, oportunidade e plano de adaptacao.")
+    with st.form("automation_form"):
+        sim_role = st.text_input("Cargo ou profissao", value=str(profile["current_role"]))
+        sim_maturity = st.selectbox(
+            "Maturidade digital",
+            ["Inicial", "Basico", "Intermediario", "Avancado"],
+            index=["Inicial", "Basico", "Intermediario", "Avancado"].index(
+                str(profile["digital_maturity"])
+            ),
         )
-        diagnosis_markdown = build_section_markdown(
-            "Diagnostico Work4.0",
-            [diagnosis.summary, diagnosis.next_action, *diagnosis.priority_skills],
+        sim_tasks = st.text_area(
+            "Principais tarefas, uma por linha",
+            value="\n".join(str(task) for task in profile["main_tasks"]),
+            height=130,
         )
-        st.download_button(
-            "Baixar relatorio completo",
-            data=report,
-            file_name="work40-ai-report.md",
-            mime="text/markdown",
+        submitted = st.form_submit_button("Simular impacto", type="primary")
+    if submitted:
+        impact = simulate_automation_impact(
+            role=sim_role,
+            skills=selected_skills,
+            main_tasks=[line.strip() for line in sim_tasks.splitlines() if line.strip()],
+            digital_maturity=sim_maturity,
         )
-        st.download_button(
-            "Baixar diagnostico",
-            data=diagnosis_markdown,
-            file_name="work40-ai-diagnostico.md",
-            mime="text/markdown",
+    else:
+        impact = default_impact
+    render_automation_result(impact)
+
+
+def render_automation_result(impact: AutomationImpact) -> None:
+    col_a, col_b, col_c = st.columns(3)
+    col_a.metric("Risco", impact.risk_level)
+    col_b.metric("Oportunidade", impact.opportunity_level)
+    col_c.metric("Score de exposicao", f"{impact.score}/100")
+    st.write(impact.summary)
+    col_left, col_right = st.columns(2)
+    render_list_card(col_left, "Tarefas mais expostas", impact.tasks_more_likely_automated)
+    render_list_card(col_right, "Tarefas com julgamento humano", impact.human_judgment_tasks)
+    render_list_card(st, "Plano de adaptacao", impact.adaptation_plan)
+
+
+def render_teacher_mode_tab(teacher_plan: TeacherModePlan) -> None:
+    st.header("Modo Professor")
+    st.caption("Materiais para aula, debate, projeto pratico e avaliacao.")
+    col_a, col_b = st.columns(2)
+    render_list_card(col_a, "Plano de aula", teacher_plan.lesson_plan)
+    render_list_card(col_b, "Objetivos de aprendizagem", teacher_plan.learning_objectives)
+    with st.container(border=True):
+        st.subheader("Atividade de sala")
+        st.write(teacher_plan.class_activity)
+    col_c, col_d = st.columns(2)
+    render_list_card(col_c, "Perguntas para debate", teacher_plan.debate_questions)
+    render_list_card(col_d, "Criterios de avaliacao", teacher_plan.evaluation_criteria)
+    with st.container(border=True):
+        st.subheader("Projeto pratico")
+        st.write(teacher_plan.practical_project)
+
+
+def render_company_mode_tab(hr_plan: CompanyHRPlan) -> None:
+    st.header("Modo Empresa/RH")
+    st.caption("Diagnostico de maturidade, oportunidades, riscos e roadmap.")
+    with st.container(border=True):
+        st.subheader("Diagnostico de maturidade")
+        st.write(hr_plan.digital_maturity_diagnosis)
+    col_a, col_b = st.columns(2)
+    render_list_card(col_a, "Oportunidades de automacao", hr_plan.automation_opportunities)
+    render_list_card(col_b, "Plano de treinamento", hr_plan.training_plan)
+    render_list_card(st, "Analise de riscos", hr_plan.risk_analysis)
+    st.subheader("Roadmap de implementacao")
+    render_phase_plan(hr_plan.implementation_roadmap)
+    render_list_card(st, "Indicadores de sucesso", hr_plan.success_indicators)
+
+
+def render_metrics_dashboard(profile: dict[str, object], ai_mode: str) -> None:
+    st.header("Dashboard")
+    st.caption("Metricas simples da sessao atual, sem banco de dados.")
+    metrics = build_dashboard_metrics(st.session_state, str(profile["role"]), ai_mode)
+    col_a, col_b, col_c = st.columns(3)
+    col_a.metric("Perguntas respondidas", metrics.questions_answered)
+    col_b.metric("Diagnosticos gerados", metrics.diagnoses_generated)
+    col_c.metric("Readiness medio", f"{metrics.average_readiness_score:.1f}")
+    col_d, col_e = st.columns(2)
+    col_d.metric("Modo IA", metrics.ai_mode)
+    col_e.metric("Perfil selecionado", metrics.selected_profile)
+    render_list_card(st, "Skills mais recomendadas", metrics.most_recommended_skills)
+
+
+def render_export_tab(
+    profile: dict[str, object],
+    diagnosis: SkillDiagnosis,
+    readiness: ReadinessScore,
+    impact: AutomationImpact,
+    study_path: list[StudyPathItem],
+    personalized_path: PersonalizedStudyPath,
+    plan: dict[str, list[str]],
+) -> None:
+    st.header("Exportar")
+    st.caption("Exports simples em Markdown, sem dependencias externas.")
+    full_report = build_markdown_report(
+        profile=profile,
+        diagnosis=diagnosis,
+        readiness=readiness,
+        impact=impact,
+        study_path=study_path,
+        plan=plan,
+    )
+    diagnosis_markdown = build_section_markdown(
+        "Diagnostico Work4.0",
+        {
+            "Resumo": [diagnosis.summary, diagnosis.next_action],
+            "Pontos fortes": diagnosis.strengths,
+            "Lacunas": diagnosis.gaps,
+            "Prioridades": diagnosis.priority_skills,
+        },
+    )
+    study_markdown = build_section_markdown(
+        "Plano de estudos Work4.0",
+        {
+            "Projeto de portfolio": [personalized_path.portfolio_project_suggestion],
+            "Trilha semanal": [
+                f"Semana {item.week}: {item.skill}. {item.objective} Entrega: {item.deliverable}."
+                for item in personalized_path.weekly_path
+            ],
+            "Plano 30/60/90": [
+                f"{phase}: {'; '.join(actions)}" for phase, actions in plan.items()
+            ],
+        },
+    )
+    col_a, col_b, col_c = st.columns(3)
+    col_a.download_button(
+        "Exportar relatorio completo",
+        data=full_report,
+        file_name="work40-ai-relatorio.md",
+        mime="text/markdown",
+        use_container_width=True,
+    )
+    col_b.download_button(
+        "Exportar diagnostico",
+        data=diagnosis_markdown,
+        file_name="work40-ai-diagnostico.md",
+        mime="text/markdown",
+        use_container_width=True,
+    )
+    col_c.download_button(
+        "Exportar plano de estudos",
+        data=study_markdown,
+        file_name="work40-ai-plano.md",
+        mime="text/markdown",
+        use_container_width=True,
+    )
+    st.subheader("Previa do relatorio completo")
+    st.code(full_report, language="markdown")
+
+
+def render_list_card(parent: Any, title: str, items: list[str]) -> None:
+    with parent.container(border=True):
+        st.subheader(title)
+        if not items:
+            st.caption("Nenhum item registrado ainda.")
+            return
+        for item in items:
+            st.markdown(f"- {item}")
+
+
+def render_phase_plan(plan: dict[str, list[str]]) -> None:
+    columns = st.columns(len(plan))
+    for column, (phase, actions) in zip(columns, plan.items(), strict=False):
+        render_list_card(column, phase, actions)
+
+
+def render_app(profile: dict[str, object], rag: RAGPipeline) -> None:
+    ensure_metrics_state(st.session_state)
+    settings = get_settings()
+    view = build_view_model(profile, settings)
+    render_hero(profile, str(view["ai_mode"]))
+    render_key_metrics(
+        view["readiness"],
+        view["impact"],
+        view["diagnosis"],
+        str(view["ai_mode"]),
+    )
+    tabs = st.tabs(
+        [
+            "Visao geral",
+            "Assistente RAG",
+            "Diagnostico",
+            "Plano de estudos",
+            "Simulador de automacao",
+            "Modo Professor",
+            "Modo Empresa/RH",
+            "Dashboard",
+            "Exportar",
+        ]
+    )
+    with tabs[0]:
+        render_overview(
+            profile,
+            view["readiness"],
+            view["diagnosis"],
+            view["impact"],
+            view["personalized_path"],
         )
-        st.code(report, language="markdown")
+    with tabs[1]:
+        render_assistant_tab(profile, rag, settings)
+    with tabs[2]:
+        render_diagnosis_tab(view["diagnosis"], view["readiness"])
+    with tabs[3]:
+        render_study_plan_tab(view["personalized_path"], view["plan"])
+    with tabs[4]:
+        render_automation_tab(profile, list(profile["selected_skills"]), view["impact"])
+    with tabs[5]:
+        render_teacher_mode_tab(view["teacher_plan"])
+    with tabs[6]:
+        render_company_mode_tab(view["hr_plan"])
+    with tabs[7]:
+        render_metrics_dashboard(profile, str(view["ai_mode"]))
+    with tabs[8]:
+        render_export_tab(
+            profile,
+            view["diagnosis"],
+            view["readiness"],
+            view["impact"],
+            view["study_path"],
+            view["personalized_path"],
+            view["plan"],
+        )
 
 
 def main() -> None:
-    render_header()
+    render_page_styles()
     profile = render_sidebar()
     rag = get_rag_pipeline()
-    render_dashboard(profile, rag)
+    render_app(profile, rag)
 
 
 if __name__ == "__main__":
