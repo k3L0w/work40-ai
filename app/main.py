@@ -108,7 +108,7 @@ def render_dashboard(profile: dict[str, object], rag: RAGPipeline) -> None:
         )
         if st.button("Responder", type="primary"):
             settings = get_settings()
-            response = answer_question(question, rag, settings)
+            response = answer_question(question, rag, settings, user_profile=profile)
             st.subheader("Resposta")
             st.write(response.answer)
             st.subheader("Fontes")

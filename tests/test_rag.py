@@ -1,6 +1,6 @@
 from pathlib import Path
 
-from src.ai.assistant import LOW_CONFIDENCE_ANSWER, answer_question
+from src.ai.assistant import ANSWER_SECTIONS, LOW_CONFIDENCE_ANSWER, answer_question
 from src.knowledge.loader import load_documents, split_markdown_text
 from src.knowledge.rag import RAGPipeline
 from src.utils.config import Settings
@@ -55,8 +55,31 @@ def test_assistant_uses_offline_fallback_without_key() -> None:
     response = answer_question("Como estudar IA?", rag, settings)
 
     assert response.used_model == "offline-fallback"
-    assert "Resposta offline deterministica" in response.answer
+    assert response.answer.startswith("Resposta direta")
+    assert "OpenAI" not in response.used_model
     assert response.sources
+
+
+def test_assistant_answer_uses_standard_structure() -> None:
+    docs = load_documents(Path("data/knowledge"))
+    rag = RAGPipeline.from_documents(docs)
+    settings = Settings(openai_api_key=None, openai_model="test", app_env="test")
+
+    response = answer_question(
+        "Como devo me preparar para automacao?",
+        rag,
+        settings,
+        user_profile={
+            "role": "Estudante",
+            "career_goal": "Analista de dados industriais",
+            "current_role": "Operacoes",
+        },
+    )
+
+    for section in ANSWER_SECTIONS:
+        assert section in response.answer
+    assert "Limitação da resposta" in response.answer
+    assert "perfil Estudante" in response.answer
 
 
 def test_assistant_reports_low_confidence_without_sources() -> None:
@@ -68,3 +91,33 @@ def test_assistant_reports_low_confidence_without_sources() -> None:
 
     assert response.answer == LOW_CONFIDENCE_ANSWER
     assert response.sources == []
+
+
+def test_assistant_rejects_retrieval_below_generation_threshold() -> None:
+    docs = load_documents(Path("data/knowledge"))
+    rag = RAGPipeline.from_documents(docs, min_score=0.0)
+    settings = Settings(openai_api_key=None, openai_model="test", app_env="test")
+
+    response = answer_question(
+        "culinaria medieval e astronomia nautica",
+        rag,
+        settings,
+        min_retrieval_score=0.2,
+    )
+
+    assert response.answer == LOW_CONFIDENCE_ANSWER
+    assert response.sources == []
+
+
+def test_assistant_cites_internal_sources() -> None:
+    docs = load_documents(Path("data/knowledge"))
+    rag = RAGPipeline.from_documents(docs)
+    settings = Settings(openai_api_key=None, openai_model="test", app_env="test")
+
+    response = answer_question("Quais competencias priorizar?", rag, settings)
+
+    assert "Fontes internas usadas" in response.answer
+    assert any(
+        f"{source.source_filename}#chunk-{source.chunk_index}" in response.answer
+        for source in response.sources
+    )
