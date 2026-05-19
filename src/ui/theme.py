@@ -96,116 +96,238 @@ p, li, .stMarkdown, [data-testid="stCaptionContainer"] {
   background-size: 82px 82px;
 }
 
-.w40-hero-content,
-.w40-orb-stage {
+.w40-hero-content {
   position: relative;
   z-index: 1;
 }
 
-.w40-badge-row,
-.w40-status-row {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
-  margin-top: 20px;
-}
-
-.w40-product-badge,
-.w40-status-badge {
-  display: inline-flex;
-  align-items: center;
-  width: fit-content;
-  min-height: 30px;
-  padding: 6px 10px;
-  border: 1px solid rgba(99, 230, 255, 0.28);
-  border-radius: 999px;
-  background: rgba(99, 230, 255, 0.08);
-  color: #dffaff;
-  font-size: 0.78rem;
-  font-weight: 800;
-  text-transform: uppercase;
-}
-
-.w40-status-badge {
-  border-color: rgba(168, 85, 247, 0.34);
-  background: rgba(168, 85, 247, 0.12);
-  text-transform: none;
-}
-
-.w40-hero h1 {
-  margin: 14px 0 8px;
-  color: #ffffff;
-  font-size: clamp(2.5rem, 6vw, 5.25rem);
-  line-height: 0.96;
-}
-
-.w40-hero h2 {
-  margin: 0 0 16px;
-  color: #c7d2fe;
-  font-size: clamp(1.2rem, 2vw, 1.65rem);
-  font-weight: 700;
-}
-
-.w40-hero p {
-  max-width: 720px;
-  color: #bfcae8;
-  font-size: 1.03rem;
-}
-
 .w40-orb-stage {
   display: grid;
-  min-height: 310px;
+  min-height: 330px;
   place-items: center;
+  overflow: visible;
+}
+
+.w40-orb-shell {
+  position: relative;
+  width: min(340px, 74vw);
+  aspect-ratio: 1;
+  transform-style: preserve-3d;
+  animation: w40-orb-float 12s ease-in-out infinite;
+}
+
+.w40-orb-halo {
+  position: absolute;
+  inset: -18%;
+  border-radius: 999px;
+  background:
+    radial-gradient(circle, rgba(99, 230, 255, 0.22), transparent 58%),
+    radial-gradient(circle at 64% 36%, rgba(168, 85, 247, 0.2), transparent 46%),
+    radial-gradient(circle at 34% 70%, rgba(255, 77, 109, 0.12), transparent 42%);
+  filter: blur(18px);
+  opacity: 0.86;
+  animation: w40-aura-breathe 12s ease-in-out infinite alternate;
+}
+
+.w40-orb,
+.w40-orb-surface,
+.w40-orb-grid,
+.w40-orb-core,
+.w40-orb-scan,
+.w40-orb-ring,
+.w40-orb-particles,
+.w40-orb-particle {
+  position: absolute;
 }
 
 .w40-orb {
-  position: relative;
-  width: min(310px, 72vw);
-  aspect-ratio: 1;
-  border: 1px solid rgba(99, 230, 255, 0.38);
+  inset: 9%;
+  overflow: hidden;
+  border: 1px solid rgba(99, 230, 255, 0.44);
   border-radius: 999px;
   background:
-    radial-gradient(circle at 42% 38%, rgba(255, 255, 255, 0.86), transparent 0.18rem),
-    radial-gradient(circle at 36% 28%, rgba(99, 230, 255, 0.72), transparent 4.8rem),
-    radial-gradient(circle at 64% 62%, rgba(168, 85, 247, 0.65), transparent 5.6rem),
-    radial-gradient(circle at 48% 58%, rgba(91, 140, 255, 0.52), transparent 6.8rem),
-    rgba(12, 18, 38, 0.72);
+    radial-gradient(circle at 50% 50%, rgba(255, 255, 255, 0.82), transparent 0.17rem),
+    radial-gradient(circle at 42% 36%, rgba(99, 230, 255, 0.8), transparent 4.8rem),
+    radial-gradient(circle at 66% 60%, rgba(168, 85, 247, 0.72), transparent 5.8rem),
+    radial-gradient(circle at 36% 70%, rgba(255, 77, 109, 0.36), transparent 5.4rem),
+    radial-gradient(circle at 48% 58%, rgba(91, 140, 255, 0.54), transparent 7rem),
+    rgba(10, 17, 38, 0.92);
   box-shadow:
     0 0 70px rgba(99, 230, 255, 0.28),
-    0 0 110px rgba(168, 85, 247, 0.18),
-    inset 0 0 55px rgba(99, 230, 255, 0.18);
-  animation: w40-pulse 5.8s ease-in-out infinite;
+    0 0 115px rgba(168, 85, 247, 0.22),
+    inset 0 0 58px rgba(99, 230, 255, 0.18),
+    inset -26px -22px 64px rgba(3, 7, 18, 0.5);
+  animation: w40-orb-breathe 18s ease-in-out infinite;
 }
 
-.w40-orb::before,
-.w40-orb::after {
-  content: "";
-  position: absolute;
-  inset: 12%;
-  border: 1px solid rgba(99, 230, 255, 0.28);
-  border-radius: 999px;
+.w40-orb-surface {
+  inset: -14%;
+  border-radius: inherit;
+  background:
+    conic-gradient(from 0deg, transparent 0 14%, rgba(99, 230, 255, 0.24) 18%, transparent 25% 44%, rgba(168, 85, 247, 0.22) 52%, transparent 60% 78%, rgba(255, 77, 109, 0.16) 86%, transparent 94%),
+    radial-gradient(circle at 28% 32%, rgba(255, 255, 255, 0.28), transparent 14%),
+    radial-gradient(circle at 72% 66%, rgba(99, 230, 255, 0.2), transparent 18%);
+  opacity: 0.58;
+  mix-blend-mode: screen;
+  transform: rotate(0deg) scale(1.08);
+  animation: w40-orb-rotate 24s linear infinite;
+}
+
+.w40-orb-grid {
+  inset: -5%;
+  border-radius: inherit;
+  opacity: 0.36;
   background:
     linear-gradient(90deg, transparent 48%, rgba(99, 230, 255, 0.42) 49% 51%, transparent 52%),
     linear-gradient(transparent 48%, rgba(168, 85, 247, 0.32) 49% 51%, transparent 52%);
-  transform: rotateX(64deg) rotateZ(0deg);
-  animation: w40-rotate 12s linear infinite;
+  background-size: 38px 38px;
+  transform: rotate(12deg) scale(1.08);
+  animation: w40-grid-drift 30s linear infinite reverse;
 }
 
-.w40-orb::after {
+.w40-orb-core {
+  inset: 34%;
+  border-radius: 999px;
+  background:
+    radial-gradient(circle, rgba(255, 255, 255, 0.96), rgba(99, 230, 255, 0.86) 26%, rgba(168, 85, 247, 0.36) 58%, transparent 72%);
+  box-shadow:
+    0 0 24px rgba(255, 255, 255, 0.54),
+    0 0 58px rgba(99, 230, 255, 0.54),
+    0 0 92px rgba(168, 85, 247, 0.4);
+  animation: w40-core-pulse 6s ease-in-out infinite;
+}
+
+.w40-orb-scan {
+  inset: 0;
+  border-radius: inherit;
+  background: linear-gradient(180deg, transparent 0 42%, rgba(255, 255, 255, 0.22) 48%, transparent 56%);
+  mix-blend-mode: screen;
+  opacity: 0.38;
+  animation: w40-scan 12s ease-in-out infinite;
+}
+
+.w40-orb-ring {
+  inset: 4%;
+  border: 1px solid rgba(99, 230, 255, 0.48);
+  border-radius: 999px;
+  box-shadow: 0 0 34px rgba(99, 230, 255, 0.24);
+  transform-style: preserve-3d;
+}
+
+.w40-orb-ring-1 {
+  transform: rotateX(68deg) rotateZ(0deg);
+  animation: w40-ring-one 12s linear infinite;
+}
+
+.w40-orb-ring-2 {
+  inset: 0;
+  border-color: rgba(168, 85, 247, 0.36);
+  transform: rotateX(58deg) rotateY(26deg) rotateZ(90deg);
+  animation: w40-ring-two 18s linear infinite reverse;
+}
+
+.w40-orb-ring-3 {
+  inset: 15%;
+  border-color: rgba(91, 140, 255, 0.35);
+  transform: rotateX(76deg) rotateY(-18deg) rotateZ(35deg);
+  animation: w40-ring-three 24s linear infinite;
+}
+
+.w40-orb-ring-4 {
+  inset: -6%;
+  border-color: rgba(255, 77, 109, 0.2);
+  transform: rotateX(72deg) rotateY(12deg) rotateZ(120deg);
+  animation: w40-ring-four 30s linear infinite reverse;
+}
+
+.w40-orb-particles {
   inset: -8%;
-  border-color: rgba(255, 77, 109, 0.18);
-  transform: rotateX(72deg) rotateZ(90deg);
-  animation-duration: 18s;
-  animation-direction: reverse;
+  pointer-events: none;
 }
 
-@keyframes w40-pulse {
-  0%, 100% { transform: translateY(0) scale(1); filter: saturate(1); }
-  50% { transform: translateY(-8px) scale(1.025); filter: saturate(1.18); }
+.w40-orb-particle {
+  width: var(--spark-size, 5px);
+  height: var(--spark-size, 5px);
+  border-radius: 999px;
+  background: var(--spark-color, var(--w40-cyan));
+  box-shadow: 0 0 18px currentColor;
+  color: var(--spark-color, var(--w40-cyan));
+  left: var(--spark-x);
+  top: var(--spark-y);
+  opacity: 0.55;
+  animation: w40-particle-drift var(--spark-duration, 7s) ease-in-out var(--spark-delay, 0s) infinite alternate;
 }
 
-@keyframes w40-rotate {
-  to { transform: rotateX(64deg) rotateZ(360deg); }
+.w40-orb-particle-1 { --spark-x: 8%; --spark-y: 30%; --spark-size: 4px; --spark-duration: 6.8s; --spark-delay: -0.7s; --spark-color: #63e6ff; }
+.w40-orb-particle-2 { --spark-x: 16%; --spark-y: 68%; --spark-size: 6px; --spark-duration: 8.9s; --spark-delay: -2.1s; --spark-color: #a855f7; }
+.w40-orb-particle-3 { --spark-x: 28%; --spark-y: 12%; --spark-size: 3px; --spark-duration: 7.6s; --spark-delay: -1.4s; --spark-color: #5b8cff; }
+.w40-orb-particle-4 { --spark-x: 44%; --spark-y: 4%; --spark-size: 5px; --spark-duration: 10.2s; --spark-delay: -3.3s; --spark-color: #ff4d6d; }
+.w40-orb-particle-5 { --spark-x: 64%; --spark-y: 10%; --spark-size: 4px; --spark-duration: 8.1s; --spark-delay: -4.8s; --spark-color: #63e6ff; }
+.w40-orb-particle-6 { --spark-x: 82%; --spark-y: 28%; --spark-size: 6px; --spark-duration: 9.7s; --spark-delay: -1.8s; --spark-color: #a855f7; }
+.w40-orb-particle-7 { --spark-x: 91%; --spark-y: 52%; --spark-size: 3px; --spark-duration: 7.2s; --spark-delay: -5.2s; --spark-color: #5b8cff; }
+.w40-orb-particle-8 { --spark-x: 76%; --spark-y: 78%; --spark-size: 5px; --spark-duration: 11.4s; --spark-delay: -2.7s; --spark-color: #63e6ff; }
+.w40-orb-particle-9 { --spark-x: 58%; --spark-y: 90%; --spark-size: 4px; --spark-duration: 8.5s; --spark-delay: -6.1s; --spark-color: #ff4d6d; }
+.w40-orb-particle-10 { --spark-x: 36%; --spark-y: 86%; --spark-size: 6px; --spark-duration: 9.1s; --spark-delay: -0.9s; --spark-color: #a855f7; }
+.w40-orb-particle-11 { --spark-x: 10%; --spark-y: 48%; --spark-size: 3px; --spark-duration: 10.8s; --spark-delay: -4.4s; --spark-color: #63e6ff; }
+.w40-orb-particle-12 { --spark-x: 88%; --spark-y: 68%; --spark-size: 4px; --spark-duration: 7.9s; --spark-delay: -3.8s; --spark-color: #5b8cff; }
+.w40-orb-particle-13 { --spark-x: 24%; --spark-y: 28%; --spark-size: 4px; --spark-duration: 12.1s; --spark-delay: -2.5s; --spark-color: #ff4d6d; }
+.w40-orb-particle-14 { --spark-x: 68%; --spark-y: 42%; --spark-size: 3px; --spark-duration: 6.9s; --spark-delay: -5.6s; --spark-color: #63e6ff; }
+
+@keyframes w40-orb-float {
+  0%, 100% { transform: translate3d(0, 0, 0) rotateZ(-1deg); }
+  28% { transform: translate3d(7px, -10px, 0) rotateZ(1.2deg); }
+  63% { transform: translate3d(-6px, 5px, 0) rotateZ(-0.8deg); }
+}
+
+@keyframes w40-aura-breathe {
+  from { opacity: 0.48; transform: scale(0.92); filter: blur(18px); }
+  to { opacity: 1; transform: scale(1.1); filter: blur(26px); }
+}
+
+@keyframes w40-orb-breathe {
+  0%, 100% { filter: saturate(1) brightness(1); transform: scale(1); }
+  50% { filter: saturate(1.22) brightness(1.12); transform: scale(1.025); }
+}
+
+@keyframes w40-orb-rotate {
+  to { transform: rotate(360deg) scale(1.08); }
+}
+
+@keyframes w40-grid-drift {
+  to { transform: rotate(372deg) scale(1.08); }
+}
+
+@keyframes w40-core-pulse {
+  0%, 100% { opacity: 0.72; transform: scale(0.82); box-shadow: 0 0 20px rgba(99, 230, 255, 0.42), 0 0 54px rgba(168, 85, 247, 0.34); }
+  48% { opacity: 1; transform: scale(1.28); box-shadow: 0 0 34px rgba(255, 255, 255, 0.62), 0 0 78px rgba(99, 230, 255, 0.68), 0 0 118px rgba(168, 85, 247, 0.5); }
+  72% { opacity: 0.9; transform: scale(1.04); }
+}
+
+@keyframes w40-scan {
+  0%, 100% { transform: translateY(-42%); opacity: 0.14; }
+  48% { transform: translateY(44%); opacity: 0.42; }
+}
+
+@keyframes w40-ring-one {
+  to { transform: rotateX(68deg) rotateZ(360deg); }
+}
+
+@keyframes w40-ring-two {
+  to { transform: rotateX(58deg) rotateY(26deg) rotateZ(450deg); }
+}
+
+@keyframes w40-ring-three {
+  to { transform: rotateX(76deg) rotateY(-18deg) rotateZ(395deg); }
+}
+
+@keyframes w40-ring-four {
+  to { transform: rotateX(72deg) rotateY(12deg) rotateZ(480deg); }
+}
+
+@keyframes w40-particle-drift {
+  0% { transform: translate3d(-10px, 8px, 0) scale(0.72); opacity: 0.18; }
+  42% { transform: translate3d(14px, -16px, 0) scale(1.18); opacity: 0.88; }
+  100% { transform: translate3d(-12px, -24px, 0) scale(0.86); opacity: 0.38; }
 }
 
 /* cards */
@@ -369,7 +491,11 @@ button[data-baseweb="tab"][aria-selected="true"] {
   }
 
   .w40-orb-stage {
-    min-height: 240px;
+    min-height: 270px;
+  }
+
+  .w40-orb-shell {
+    width: min(290px, 76vw);
   }
 
   div[data-testid="stMetric"] {
@@ -378,10 +504,20 @@ button[data-baseweb="tab"][aria-selected="true"] {
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .w40-orb-shell,
+  .w40-orb-halo,
   .w40-orb,
-  .w40-orb::before,
-  .w40-orb::after {
+  .w40-orb-surface,
+  .w40-orb-grid,
+  .w40-orb-core,
+  .w40-orb-scan,
+  .w40-orb-ring,
+  .w40-orb-particle {
     animation: none;
+  }
+
+  .w40-orb-particle {
+    opacity: 0.35;
   }
 }
 </style>

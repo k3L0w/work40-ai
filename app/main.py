@@ -35,6 +35,7 @@ from src.knowledge.embedding_retriever import RetrievalRouter
 from src.knowledge.loader import load_documents
 from src.knowledge.rag import RAGPipeline, RetrievedDocument
 from src.ui.markdown_export import build_markdown_report, build_section_markdown
+from src.ui.orb import neural_orb
 from src.ui.theme import app_theme_css, badge, paragraph
 from src.utils.config import Settings, get_settings
 
@@ -166,9 +167,7 @@ def render_hero(profile: dict[str, object], ai_mode: str) -> None:
                     {badge(f"Objetivo {profile['career_goal']}")}
                 </div>
             </div>
-            <div class="w40-orb-stage" aria-hidden="true">
-                <div class="w40-orb"></div>
-            </div>
+            <div class="w40-orb-stage">{neural_orb()}</div>
         </section>
         """,
         unsafe_allow_html=True,
