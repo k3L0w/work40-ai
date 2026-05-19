@@ -1,4 +1,7 @@
+import sys
 from pathlib import Path
+from types import SimpleNamespace
+
 
 from src.ai.assistant import ANSWER_SECTIONS, LOW_CONFIDENCE_ANSWER, answer_question
 from src.knowledge.loader import load_documents, split_markdown_text
@@ -55,6 +58,8 @@ def test_assistant_uses_offline_fallback_without_key() -> None:
     response = answer_question("Como estudar IA?", rag, settings)
 
     assert response.used_model == "offline-fallback"
+    assert response.ai_mode == "offline"
+    assert response.warning is None
     assert response.answer.startswith("Resposta direta")
     assert "OpenAI" not in response.used_model
     assert response.sources
@@ -90,6 +95,7 @@ def test_assistant_reports_low_confidence_without_sources() -> None:
     response = answer_question("culinaria medieval e astronomia nautica", rag, settings)
 
     assert response.answer == LOW_CONFIDENCE_ANSWER
+    assert response.ai_mode == "offline"
     assert response.sources == []
 
 
@@ -121,3 +127,61 @@ def test_assistant_cites_internal_sources() -> None:
         f"{source.source_filename}#chunk-{source.chunk_index}" in response.answer
         for source in response.sources
     )
+
+
+class _FailingOpenAIClient:
+    def __init__(self, api_key: str | None) -> None:
+        raise TypeError("Client.__init__() got an unexpected keyword argument 'proxies'")
+
+
+class _RaisingResponses:
+    def create(self, **_kwargs: object) -> object:
+        raise RuntimeError("network unavailable")
+
+
+class _RaisingOpenAIClient:
+    def __init__(self, api_key: str | None) -> None:
+        self.responses = _RaisingResponses()
+
+
+def test_assistant_falls_back_when_openai_client_initialization_fails(
+    monkeypatch,
+) -> None:
+    docs = load_documents(Path("data/knowledge"))
+    rag = RAGPipeline.from_documents(docs)
+    settings = Settings(openai_api_key="test-key", openai_model="test", app_env="test")
+    monkeypatch.setitem(
+        sys.modules,
+        "openai",
+        SimpleNamespace(OpenAI=_FailingOpenAIClient),
+    )
+
+    response = answer_question("Como estudar IA?", rag, settings)
+
+    assert response.used_model == "offline-fallback"
+    assert response.ai_mode == "fallback"
+    assert response.warning == (
+        "A IA online não pôde ser usada neste momento. "
+        "O sistema respondeu com o modo offline."
+    )
+    assert response.answer.startswith("Resposta direta")
+    assert response.sources
+
+
+def test_assistant_never_crashes_when_openai_generation_raises(monkeypatch) -> None:
+    docs = load_documents(Path("data/knowledge"))
+    rag = RAGPipeline.from_documents(docs)
+    settings = Settings(openai_api_key="test-key", openai_model="test", app_env="test")
+    monkeypatch.setitem(
+        sys.modules,
+        "openai",
+        SimpleNamespace(OpenAI=_RaisingOpenAIClient),
+    )
+
+    response = answer_question("Como estudar IA?", rag, settings)
+
+    assert response.used_model == "offline-fallback"
+    assert response.ai_mode == "fallback"
+    assert response.warning is not None
+    assert "Fontes internas usadas" in response.answer
+    assert response.sources

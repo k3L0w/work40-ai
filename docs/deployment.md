@@ -5,6 +5,8 @@ page em GitHub Pages sem expor segredos.
 
 ## 1. Checklist antes do deploy
 
+Leia tambem `docs/final_checklist.md` antes da apresentacao final.
+
 Rode localmente ou no Codespaces:
 
 ```bash
@@ -18,7 +20,9 @@ Confirme tambem:
 - `docs/index.html` abre como pagina estatica.
 - `docs/assets/style.css` carrega corretamente.
 - `.env` nao foi commitado.
-- Links placeholders foram revisados antes da divulgacao publica.
+- Links placeholders `STREAMLIT_APP_URL` e `GITHUB_REPOSITORY_URL` foram revisados antes da divulgacao publica.
+- Perguntas de demo em `docs/demo_questions.md` foram testadas.
+- Script em `docs/demo_script.md` foi ensaiado.
 
 ## 2. Streamlit Community Cloud
 
@@ -96,7 +100,17 @@ Sem `OPENAI_API_KEY`, o app continua disponivel com:
 Esse modo e recomendado para demonstracoes publicas quando voce nao quer expor
 ou consumir uma chave de API.
 
-## 6. Pontos para apresentacao
+## 6. Pos-deploy
+
+Depois de publicar:
+
+1. Substitua `STREAMLIT_APP_URL` em `docs/index.html` pela URL real do Streamlit.
+2. Substitua `GITHUB_REPOSITORY_URL` pela URL real do repositorio.
+3. Abra a landing page em desktop e mobile.
+4. Teste o app publicado sem secrets para confirmar o modo offline.
+5. Teste novamente com secrets, se for demonstrar modo online.
+
+## 7. Pontos para apresentacao
 
 Para SENAI, GitHub, LinkedIn e recrutadores, destaque:
 

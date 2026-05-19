@@ -78,28 +78,48 @@ def render_page_styles() -> None:
         .block-container {padding-top: 2rem; padding-bottom: 3rem;}
         div[data-testid="stMetric"] {
             background: #ffffff;
-            border: 1px solid #e5e7eb;
+            border: 1px solid #d9e2ec;
             border-radius: 8px;
             padding: 14px 16px;
+            color: #0f172a;
+        }
+        div[data-testid="stMetric"] label,
+        div[data-testid="stMetric"] [data-testid="stMetricValue"] {
+            color: #0f172a;
         }
         div[data-testid="stMetricLabel"] {font-weight: 650;}
         .w40-hero {
-            border: 1px solid #e5e7eb;
+            border: 1px solid #d9e2ec;
             border-radius: 8px;
-            padding: 28px 30px;
+            padding: 30px 32px;
             background: linear-gradient(135deg, #f8fafc 0%, #eef6f3 100%);
+            color: #0f172a;
             margin-bottom: 18px;
         }
-        .w40-hero h1 {margin-bottom: 8px; letter-spacing: 0;}
-        .w40-hero p {font-size: 1.02rem; color: #475569; max-width: 880px;}
+        .w40-hero h1 {
+            margin-bottom: 8px;
+            color: #0f172a;
+            letter-spacing: 0;
+        }
+        .w40-hero p {font-size: 1.02rem; color: #334155; max-width: 900px;}
+        .w40-hero strong {color: #0f766e;}
         .w40-eyebrow {
             color: #0f766e;
-            font-weight: 700;
+            font-weight: 750;
             text-transform: uppercase;
             font-size: 0.78rem;
             margin-bottom: 8px;
         }
         .w40-section-note {color: #64748b; margin-top: -8px;}
+        @media (prefers-color-scheme: dark) {
+            div[data-testid="stMetric"] {
+                background: #f8fafc;
+                border-color: #cbd5e1;
+            }
+            .w40-hero {
+                background: linear-gradient(135deg, #f8fafc 0%, #e6f4ef 100%);
+            }
+        }
         </style>
         """,
         unsafe_allow_html=True,
@@ -227,7 +247,8 @@ def build_view_model(
         str(profile["current_role"]),
         str(profile["digital_maturity"]),
     )
-    ai_mode = "online" if settings.openai_api_key else "offline"
+    configured_mode = "online" if settings.openai_api_key else "offline"
+    ai_mode = str(st.session_state.get("last_ai_mode", configured_mode))
     metrics = build_dashboard_metrics(st.session_state, str(profile["role"]), ai_mode)
     return {
         "diagnosis": diagnosis,
@@ -319,11 +340,17 @@ def render_assistant_tab(
         record_question_answered(st.session_state)
         st.session_state["last_answer"] = response.answer
         st.session_state["last_sources"] = response.sources
+        st.session_state["last_ai_mode"] = response.ai_mode
+        st.session_state["last_ai_warning"] = response.warning
     hint_col.caption("Use perguntas especificas para obter citacoes mais precisas.")
 
     answer = st.session_state.get("last_answer")
     sources = st.session_state.get("last_sources", [])
     if answer:
+        ai_mode = st.session_state.get("last_ai_mode", "offline")
+        st.caption(f"Modo usado na ultima resposta: {ai_mode}")
+        if st.session_state.get("last_ai_warning"):
+            st.warning(str(st.session_state["last_ai_warning"]))
         if answer == LOW_CONFIDENCE_ANSWER:
             st.warning(
                 "Nao encontrei contexto suficiente na base interna para responder "

@@ -1,11 +1,14 @@
 from __future__ import annotations
 
+import logging
 from dataclasses import dataclass
 from typing import Any
 
 from src.knowledge.rag import DEFAULT_MIN_SCORE, RAGPipeline, RetrievedDocument
 from src.utils.config import Settings
 
+
+logger = logging.getLogger(__name__)
 
 LOW_CONFIDENCE_ANSWER = (
     "Não encontrei informação suficiente na base de conhecimento para responder "
@@ -54,6 +57,8 @@ class AssistantResponse:
     answer: str
     sources: list[RetrievedDocument]
     used_model: str
+    ai_mode: str
+    warning: str | None = None
 
 
 def answer_question(
@@ -70,17 +75,34 @@ def answer_question(
             answer=LOW_CONFIDENCE_ANSWER,
             sources=[],
             used_model="offline-fallback",
+            ai_mode="offline",
         )
 
     if settings.openai_api_key:
         generated = _answer_with_openai(question, sources, settings, user_profile)
         if generated:
-            return AssistantResponse(generated, sources, settings.openai_model)
+            return AssistantResponse(
+                answer=generated,
+                sources=sources,
+                used_model=settings.openai_model,
+                ai_mode="online",
+            )
+        return AssistantResponse(
+            answer=_offline_answer(question, sources, user_profile),
+            sources=sources,
+            used_model="offline-fallback",
+            ai_mode="fallback",
+            warning=(
+                "A IA online não pôde ser usada neste momento. "
+                "O sistema respondeu com o modo offline."
+            ),
+        )
 
     return AssistantResponse(
         answer=_offline_answer(question, sources, user_profile),
         sources=sources,
         used_model="offline-fallback",
+        ai_mode="offline",
     )
 
 
@@ -137,10 +159,16 @@ def _answer_with_openai(
 ) -> str | None:
     try:
         from openai import OpenAI
-    except ImportError:
+    except ImportError as exc:
+        logger.warning("OpenAI SDK is not installed; using offline fallback: %s", exc)
         return None
 
-    client = OpenAI(api_key=settings.openai_api_key)
+    try:
+        client = OpenAI(api_key=settings.openai_api_key)
+    except Exception as exc:
+        logger.warning("OpenAI client initialization failed; using offline fallback: %s", exc)
+        return None
+
     context = "\n\n".join(
         "Fonte: "
         f"{source.title} ({source.source_filename}, chunk {source.chunk_index}, "
@@ -160,7 +188,8 @@ def _answer_with_openai(
             input=prompt,
             temperature=0.2,
         )
-    except Exception:
+    except Exception as exc:
+        logger.warning("OpenAI response generation failed; using offline fallback: %s", exc)
         return None
     return response.output_text
 

@@ -1,28 +1,100 @@
 # Work4.0 AI
 
-Work4.0 AI e um MVP em Streamlit para inteligencia de carreira na era da
-Industria 4.0. O projeto ajuda estudantes, trabalhadores, professores e equipes
-de RH a entender impactos de IA, automacao, robotica, dados e transformacao
-digital sobre tarefas, competencias e planos de desenvolvimento.
+**Work4.0 AI** e um MVP em Streamlit para inteligencia de carreira na era da
+Industria 4.0. O projeto combina RAG, diagnostico de competencias, simulador de
+automacao, planos de estudo e modos para professores e empresas, mantendo uma
+base simples, testavel e pronta para demonstracao.
 
-O MVP inclui:
+O app foi pensado para apresentacoes no SENAI, portfolio no GitHub, publicacao no
+LinkedIn e avaliacao por recrutadores. Ele funciona offline por padrao e usa a
+OpenAI apenas quando `OPENAI_API_KEY` esta configurada de forma segura.
 
-- Assistente RAG com fontes internas
-- fallback offline deterministico quando `OPENAI_API_KEY` nao existe
-- diagnostico de competencias
-- Industry 4.0 Readiness Score
-- simulador de impacto da automacao
-- trilha personalizada de estudos
-- plano 30/60/90 dias
-- modo Professor
-- modo Empresa/RH
-- dashboard de sessao
-- exportacao Markdown
-- landing page estatica para GitHub Pages em `docs/`
+## Product Pitch
 
-## Stack
+Profissionais, estudantes, professores e equipes de RH precisam transformar a
+mudanca causada por IA, automacao, robotica e dados em planos praticos de
+aprendizagem. Work4.0 AI entrega uma experiencia guiada para diagnosticar
+competencias, entender riscos e oportunidades por tarefa, consultar uma base RAG
+e gerar proximas acoes com linguagem clara.
 
-- Python
+## Problema
+
+A transformacao digital cria duvidas recorrentes:
+
+- quais competencias priorizar;
+- quais tarefas podem ser automatizadas ou aumentadas por IA;
+- como criar evidencias praticas de aprendizagem;
+- como professores podem levar Industria 4.0 para a sala de aula;
+- como empresas podem planejar reskilling sem discurso alarmista.
+
+O projeto evita promessas de emprego, estatisticas inventadas e previsoes
+absolutas sobre extincao de profissoes.
+
+## Solucao
+
+Work4.0 AI oferece:
+
+- assistente RAG com citacao de fontes internas;
+- fallback offline deterministico;
+- diagnostico de competencias digitais e humanas;
+- Work4.0 Readiness Score;
+- simulador de impacto da automacao por tarefa;
+- trilha semanal de estudos;
+- plano 30/60/90 dias;
+- modo Professor;
+- modo Empresa/RH;
+- dashboard de sessao;
+- exportacao em Markdown;
+- landing page estatica para GitHub Pages.
+
+## Publico-alvo
+
+- **Estudantes:** escolher competencias e montar portfolio.
+- **Trabalhadores:** reposicionar experiencia para tarefas de maior valor.
+- **Professores:** criar planos de aula, debates e projetos praticos.
+- **Empresas/RH:** planejar reskilling, pilotos de automacao e indicadores.
+- **Recrutadores e avaliadores:** revisar arquitetura, testes, UX e maturidade do MVP.
+
+## Features principais
+
+| Feature | Descricao |
+| --- | --- |
+| Assistente RAG | Responde em portugues usando a base local e citando arquivo/chunk. |
+| Skills Diagnosis | Avalia alfabetizacao digital, Python, dados, IA, automacao, portfolio, comunicacao e adaptabilidade. |
+| Readiness Score | Calcula prontidao digital, IA, automacao, adaptabilidade e score geral Work4.0. |
+| Automation Simulator | Separa tarefas mais expostas, tarefas com julgamento humano, risco, oportunidade e plano. |
+| Study Path | Gera trilha semanal, objetivos, entregaveis e projeto de portfolio. |
+| 30/60/90 Plan | Cria plano de execucao para estudante, trabalhador, professor e empresa/RH. |
+| Teacher Mode | Gera plano de aula, objetivos, atividade, debate, projeto e criterios. |
+| Company/HR Mode | Gera maturidade, oportunidades, riscos, treinamento, roadmap e indicadores. |
+| Dashboard | Mostra metricas da sessao sem banco de dados. |
+| Markdown Export | Exporta relatorio completo, diagnostico e plano de estudos. |
+
+## Arquitetura
+
+```text
+app/main.py                 Streamlit UI
+src/ai/assistant.py         Geracao OpenAI opcional + fallback offline
+src/knowledge/              Loader e RAG TF-IDF sobre data/knowledge
+src/features/               Regras de diagnostico, readiness, simulador e planos
+src/ui/markdown_export.py   Exportacao Markdown
+data/knowledge/             Base interna em Markdown
+docs/                       Landing page GitHub Pages e docs de deploy
+tests/                      Testes deterministicos com pytest
+```
+
+Principios aplicados:
+
+- UI separada da logica de negocio;
+- IA separada da recuperacao RAG;
+- fallback offline obrigatorio;
+- ausencia de segredos hardcoded;
+- testes sem chamadas reais a OpenAI;
+- deploy sem infraestrutura paga obrigatoria.
+
+## Tech Stack
+
+- Python 3.11
 - Streamlit
 - scikit-learn
 - pandas
@@ -39,19 +111,19 @@ O MVP inclui:
 
 1. Abra o repositorio no GitHub.
 2. Selecione **Code > Codespaces > Create codespace**.
-3. Aguarde o `postCreateCommand` instalar as dependencias de `requirements.txt`.
+3. Aguarde o `postCreateCommand` instalar as dependencias.
 4. Rode:
 
 ```bash
 streamlit run app/main.py
 ```
 
-5. Abra a aba **PORTS** no Codespaces.
+5. Abra a aba **PORTS**.
 6. Localize a porta `8501`.
-7. Use **Open in Browser** na linha da porta encaminhada.
+7. Use **Open in Browser**.
 
-A configuracao `.streamlit/config.toml` ja executa o Streamlit em modo headless,
-em `0.0.0.0:8501`, adequado para Codespaces.
+A configuracao `.streamlit/config.toml` ja usa `0.0.0.0:8501`, adequado para
+Codespaces e Streamlit.
 
 ## Rodar localmente
 
@@ -65,47 +137,42 @@ python -m pip install -r requirements.txt
 streamlit run app/main.py
 ```
 
-No Windows PowerShell, ative o ambiente com:
+No Windows PowerShell:
 
 ```powershell
 .venv\Scripts\Activate.ps1
+python -m pip install -r requirements.txt
+streamlit run app/main.py
 ```
 
-Depois abra o endereco exibido pelo Streamlit, normalmente
-`http://localhost:8501`.
+## Configurar OPENAI_API_KEY com seguranca
 
-## Modo offline e OpenAI
-
-O app funciona sem chave da OpenAI. Quando `OPENAI_API_KEY` nao esta configurada,
-o assistente usa fallback offline deterministico e continua respondendo com base
-na logica local.
-
-Para usar OpenAI localmente:
+O app funciona sem OpenAI. Para habilitar modo online localmente:
 
 1. Copie `.env.example` para `.env`.
-2. Preencha somente no seu ambiente local:
+2. Preencha a chave apenas no arquivo local:
 
 ```bash
+APP_ENV=local
 OPENAI_API_KEY=sua_chave_aqui
 OPENAI_MODEL=gpt-4.1-mini
-APP_ENV=local
 ```
 
-3. Nunca publique `.env` e nunca cole chaves em codigo, README, issues ou prints.
+3. Nunca commite `.env`.
+4. Nunca cole chaves em README, docs, prints, issues ou commits.
 
-O arquivo `.env` deve permanecer fora do Git. Use `.env.example` apenas como
-modelo sem segredo real.
+Sem `OPENAI_API_KEY`, o assistente usa fallback offline deterministico.
 
 ## Deploy no Streamlit Community Cloud
 
-1. Suba o repositorio para o GitHub.
+1. Publique o repositorio no GitHub.
 2. Acesse <https://share.streamlit.io/>.
-3. Crie um novo app apontando para este repositorio.
+3. Crie um novo app.
 4. Configure:
-   - branch: `main` ou a branch de deploy
-   - main file path: `app/main.py`
-5. Em **Advanced settings > Secrets**, adicione a chave somente se quiser modo
-   online:
+   - repository: este repositorio;
+   - branch: `main` ou branch de deploy;
+   - main file path: `app/main.py`.
+5. Em **Advanced settings > Secrets**, adicione apenas se quiser modo online:
 
 ```toml
 OPENAI_API_KEY = "sua_chave_aqui"
@@ -113,31 +180,43 @@ OPENAI_MODEL = "gpt-4.1-mini"
 APP_ENV = "production"
 ```
 
-Sem secrets, o app deve continuar funcionando em modo offline.
+Sem secrets, o app continua funcionando em modo offline.
 
 ## GitHub Pages
 
-A landing page estatica esta em:
+A landing page esta em:
 
 - `docs/index.html`
 - `docs/assets/style.css`
 
-Para habilitar GitHub Pages:
+Para publicar:
 
-1. No GitHub, abra **Settings > Pages**.
-2. Em **Build and deployment**, selecione **Deploy from a branch**.
-3. Escolha a branch principal.
-4. Em folder, selecione `/docs`.
-5. Salve e aguarde a URL publica.
+1. Abra **Settings > Pages** no GitHub.
+2. Escolha **Deploy from a branch**.
+3. Selecione a branch principal.
+4. Escolha a pasta `/docs`.
+5. Salve.
 
-Antes de divulgar, substitua no `docs/index.html`:
+Antes de divulgar, substitua em `docs/index.html`:
 
-- `STREAMLIT_APP_URL` pela URL do app publicado no Streamlit Cloud
-- `GITHUB_REPOSITORY_URL` pela URL do repositorio no GitHub
+- `STREAMLIT_APP_URL`
+- `GITHUB_REPOSITORY_URL`
+
+## Demo Questions
+
+Use estas perguntas no Assistente RAG:
+
+- Como devo me preparar para a Industria 4.0?
+- Quais competencias devo priorizar para trabalhar com dados industriais?
+- Como a automacao pode impactar tarefas repetitivas no meu cargo?
+- Que habilidades humanas continuam importantes com IA e automacao?
+- Como montar um portfolio para uma carreira em automacao e dados?
+
+Mais exemplos estao em [`docs/demo_questions.md`](docs/demo_questions.md).
 
 ## Validacao
 
-Rode antes de publicar ou apresentar:
+Antes de apresentar ou publicar:
 
 ```bash
 pytest
@@ -146,34 +225,37 @@ streamlit run app/main.py --server.address 0.0.0.0 --server.port 8501
 ```
 
 Para conferir a landing page, abra `docs/index.html` diretamente no navegador.
-Ela nao exige build, JavaScript ou dependencias externas obrigatorias.
 
-## Estrutura do projeto
+## Roadmap
 
-```text
-app/
-  main.py
-src/
-  ai/
-  features/
-  knowledge/
-  ui/
-  utils/
-data/
-  knowledge/
-docs/
-  index.html
-  assets/style.css
-tests/
-.devcontainer/
-.github/
-```
+- Adicionar upload controlado de documentos para expandir a base RAG.
+- Criar autenticacao simples para perfis persistentes.
+- Salvar historico e metricas em banco leve quando necessario.
+- Adicionar screenshots reais na landing page.
+- Melhorar ranking RAG com embeddings quando houver infraestrutura adequada.
+- Adicionar avaliacao automatizada de qualidade das respostas.
 
-## Observacoes de seguranca
+## Limitacoes
 
-- Nao hardcode chaves ou tokens.
-- Nao commite `.env`.
-- Configure secrets pelo painel do Streamlit Community Cloud.
-- O fallback offline permite demonstrar o MVP sem depender de API paga.
-- As respostas evitam prometer emprego, inventar estatisticas ou fazer previsoes
-  absolutas sobre extincao de profissoes.
+- As metricas do dashboard usam apenas `st.session_state` e reiniciam por sessao.
+- O simulador e os scores sao heuristicas de MVP, nao previsoes de mercado.
+- O fallback offline e deterministico e menos flexivel que um modelo generativo.
+- A base RAG e pequena e deve ser expandida para uso real.
+- Links da landing page ainda precisam ser substituidos pelos URLs finais.
+
+## Documentacao extra
+
+- [`docs/deployment.md`](docs/deployment.md)
+- [`docs/architecture.md`](docs/architecture.md)
+- [`docs/demo_script.md`](docs/demo_script.md)
+- [`docs/demo_questions.md`](docs/demo_questions.md)
+- [`docs/final_checklist.md`](docs/final_checklist.md)
+
+## Seguranca e guardrails
+
+- Sem chaves hardcoded.
+- Sem chamadas obrigatorias a API externa.
+- Sem promessas de emprego.
+- Sem estatisticas inventadas.
+- Sem previsoes absolutas sobre extincao de profissoes.
+- Respostas RAG devem citar fontes internas quando houver contexto suficiente.
