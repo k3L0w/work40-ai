@@ -187,14 +187,69 @@ class _FailingOpenAIClient:
         raise TypeError("Client.__init__() got an unexpected keyword argument 'proxies'")
 
 
-class _RaisingResponses:
+class _SuccessfulCompletions:
     def create(self, **_kwargs: object) -> object:
-        raise RuntimeError("network unavailable")
+        return SimpleNamespace(
+            choices=[
+                SimpleNamespace(
+                    message=SimpleNamespace(
+                        content=(
+                            "Resposta direta\nResposta online mockada.\n\n"
+                            "Explicação\nUsa contexto recuperado.\n\n"
+                            "Impacto no futuro do trabalho\nSem previsões absolutas.\n\n"
+                            "Competências recomendadas\nDados e automação.\n\n"
+                            "Próxima ação prática\nCriar um mini projeto.\n\n"
+                            "Fontes internas usadas\n- fonte interna"
+                        )
+                    )
+                )
+            ]
+        )
+
+
+class _SuccessfulChat:
+    def __init__(self) -> None:
+        self.completions = _SuccessfulCompletions()
+
+
+class _SuccessfulOpenAIClient:
+    def __init__(self, api_key: str | None) -> None:
+        self.chat = _SuccessfulChat()
+
+
+class _RaisingCompletions:
+    def create(self, **_kwargs: object) -> object:
+        raise RuntimeError("network unavailable for sk-test-secret-123456789")
+
+
+class _RaisingChat:
+    def __init__(self) -> None:
+        self.completions = _RaisingCompletions()
 
 
 class _RaisingOpenAIClient:
     def __init__(self, api_key: str | None) -> None:
-        self.responses = _RaisingResponses()
+        self.chat = _RaisingChat()
+
+
+def test_assistant_uses_openai_when_chat_completion_succeeds(monkeypatch) -> None:
+    docs = load_documents(Path("data/knowledge"))
+    rag = RAGPipeline.from_documents(docs)
+    settings = Settings(openai_api_key="test-key", openai_model="test", app_env="test")
+    monkeypatch.setitem(
+        sys.modules,
+        "openai",
+        SimpleNamespace(OpenAI=_SuccessfulOpenAIClient),
+    )
+
+    response = answer_question("Como estudar IA?", rag, settings)
+
+    assert response.used_model == "test"
+    assert response.ai_mode == "online"
+    assert response.warning is None
+    assert response.answer.startswith("Resposta direta")
+    assert "Resposta online mockada" in response.answer
+    assert response.sources
 
 
 def test_assistant_falls_back_when_openai_client_initialization_fails(
@@ -218,6 +273,9 @@ def test_assistant_falls_back_when_openai_client_initialization_fails(
         "O sistema respondeu com o modo offline."
     )
     assert response.answer.startswith("Resposta direta")
+    assert response.safe_error_type == "TypeError"
+    assert response.safe_error_message is not None
+    assert "test-key" not in response.safe_error_message
     assert response.sources
 
 
@@ -236,5 +294,39 @@ def test_assistant_never_crashes_when_openai_generation_raises(monkeypatch) -> N
     assert response.used_model == "offline-fallback"
     assert response.ai_mode == "fallback"
     assert response.warning is not None
+    assert response.safe_error_type == "RuntimeError"
+    assert response.safe_error_message is not None
+    assert "sk-test-secret" not in response.safe_error_message
     assert "Fontes internas usadas" in response.answer
     assert response.sources
+
+
+def test_offline_answer_explanation_removes_raw_urls() -> None:
+    docs = load_documents(Path("data/knowledge"))
+    rag = RAGPipeline.from_documents(docs)
+    settings = Settings(openai_api_key=None, openai_model="test", app_env="test")
+
+    response = answer_question("Quais fontes oficiais apoiam Industria 4.0?", rag, settings)
+
+    explanation = response.answer.split("Impacto no futuro do trabalho", maxsplit=1)[0]
+    assert "http://" not in explanation
+    assert "https://" not in explanation
+    assert "Fontes internas usadas" in response.answer
+
+
+def test_retrieval_warning_is_returned_for_low_similarity_above_threshold() -> None:
+    docs = load_documents(Path("data/knowledge"))
+    rag = RAGPipeline.from_documents(docs, min_score=0.0)
+    settings = Settings(openai_api_key=None, openai_model="test", app_env="test")
+
+    response = answer_question(
+        "culinaria medieval astronomia nautica",
+        rag,
+        settings,
+        min_retrieval_score=0.0,
+    )
+
+    assert response.retrieval_warning == (
+        "A resposta pode estar limitada porque a base encontrou baixa "
+        "similaridade com a pergunta."
+    )

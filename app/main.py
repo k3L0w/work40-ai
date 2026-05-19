@@ -12,6 +12,7 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 from src.ai.assistant import LOW_CONFIDENCE_ANSWER, answer_question
+from src.ai.diagnostics import AIHealthStatus, check_ai_health
 from src.features.automation import AutomationImpact, simulate_automation_impact
 from src.features.dashboard import (
     build_dashboard_metrics,
@@ -125,6 +126,66 @@ def render_page_styles() -> None:
         """,
         unsafe_allow_html=True,
     )
+
+
+def _current_ai_health(settings: Settings) -> AIHealthStatus:
+    if not settings.openai_api_key:
+        return check_ai_health(settings)
+    health_key = (
+        bool(settings.openai_api_key),
+        settings.openai_model,
+        settings.openai_embedding_model,
+    )
+    if st.session_state.get("ai_health_key") != health_key:
+        st.session_state["ai_health_status"] = check_ai_health(settings)
+        st.session_state["ai_health_key"] = health_key
+    return st.session_state["ai_health_status"]
+
+
+def _refresh_ai_health(settings: Settings) -> AIHealthStatus:
+    health = check_ai_health(settings)
+    st.session_state["ai_health_status"] = health
+    st.session_state["ai_health_key"] = (
+        bool(settings.openai_api_key),
+        settings.openai_model,
+        settings.openai_embedding_model,
+    )
+    return health
+
+
+def render_ai_status_sidebar(settings: Settings, profile: dict[str, object]) -> None:
+    st.sidebar.divider()
+    st.sidebar.subheader("Status da IA")
+    health = _current_ai_health(settings)
+    if st.sidebar.button("Validar IA online", use_container_width=True):
+        health = _refresh_ai_health(settings)
+
+    last_ai_mode = str(st.session_state.get("last_ai_mode", "offline"))
+    if not health.api_key_present:
+        chat_status = "offline"
+    elif health.chat_available:
+        chat_status = "online"
+    else:
+        chat_status = "fallback" if last_ai_mode != "online" else "online"
+
+    safe_error_type = st.session_state.get("last_safe_error_type") or health.safe_error_type
+    safe_error_message = (
+        st.session_state.get("last_safe_error_message")
+        or st.session_state.get("last_retrieval_safe_error_message")
+        or health.safe_error_message
+    )
+
+    st.sidebar.write(f"API key detected: {'sim' if health.api_key_present else 'nao'}")
+    st.sidebar.write(f"Chat generation: {chat_status}")
+    st.sidebar.write(f"Retrieval mode: {profile.get('retrieval_mode', 'Auto')}")
+    st.sidebar.write(
+        f"Embeddings available: {'sim' if health.embeddings_available else 'nao'}"
+    )
+    if safe_error_type or safe_error_message:
+        st.sidebar.warning(
+            f"Ultimo erro seguro: {safe_error_type or 'Erro'} - "
+            f"{safe_error_message or 'sem detalhes adicionais'}"
+        )
 
 
 def render_hero(profile: dict[str, object], ai_mode: str) -> None:
@@ -366,6 +427,15 @@ def render_assistant_tab(
         st.session_state["last_ai_mode"] = response.ai_mode
         st.session_state["last_retrieval_mode"] = response.retrieval_mode
         st.session_state["last_ai_warning"] = response.warning
+        st.session_state["last_retrieval_warning"] = response.retrieval_warning
+        st.session_state["last_safe_error_type"] = response.safe_error_type
+        st.session_state["last_safe_error_message"] = response.safe_error_message
+        st.session_state["last_retrieval_safe_error_type"] = (
+            retriever.last_safe_error_type
+        )
+        st.session_state["last_retrieval_safe_error_message"] = (
+            retriever.last_safe_error_message
+        )
     hint_col.caption("Use perguntas especificas para obter citacoes mais precisas.")
 
     answer = st.session_state.get("last_answer")
@@ -376,6 +446,13 @@ def render_assistant_tab(
         st.caption(f"Modo usado na ultima resposta: IA {ai_mode} | Retrieval {retrieval_used}")
         if st.session_state.get("last_ai_warning"):
             st.warning(str(st.session_state["last_ai_warning"]))
+        if st.session_state.get("last_safe_error_message"):
+            st.caption(
+                "Motivo seguro: "
+                f"{st.session_state['last_safe_error_message']}"
+            )
+        if st.session_state.get("last_retrieval_warning"):
+            st.warning(str(st.session_state["last_retrieval_warning"]))
         if answer == LOW_CONFIDENCE_ANSWER:
             st.warning(
                 "Nao encontrei contexto suficiente na base interna para responder "
@@ -437,7 +514,7 @@ def render_sources(sources: list[RetrievedDocument]) -> None:
                 f"chunk `{source.chunk_index}`"
             )
             score_col.metric("Score", f"{source.score:.4f}")
-            st.write(source.excerpt)
+            st.write(source.excerpt[:420])
 
 
 def render_diagnosis_tab(
@@ -684,6 +761,7 @@ def render_phase_plan(plan: dict[str, list[str]]) -> None:
 def render_app(profile: dict[str, object], rag: RAGPipeline) -> None:
     ensure_metrics_state(st.session_state)
     settings = get_settings()
+    render_ai_status_sidebar(settings, profile)
     view = build_view_model(profile, settings)
     render_hero(profile, str(view["ai_mode"]))
     render_key_metrics(

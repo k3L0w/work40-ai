@@ -1,9 +1,11 @@
 from __future__ import annotations
 
 import logging
+import re
 from dataclasses import dataclass
 from typing import Any
 
+from src.ai.diagnostics import SafeAIError, safe_error_from_exception
 from src.knowledge.rag import DEFAULT_MIN_SCORE, RAGPipeline, RetrievedDocument
 from src.utils.config import Settings
 
@@ -60,6 +62,9 @@ class AssistantResponse:
     ai_mode: str
     retrieval_mode: str
     warning: str | None = None
+    retrieval_warning: str | None = None
+    safe_error_type: str | None = None
+    safe_error_message: str | None = None
 
 
 def answer_question(
@@ -81,8 +86,15 @@ def answer_question(
             retrieval_mode=retrieval_mode,
         )
 
+    retrieval_warning = _combined_retrieval_warning(rag, sources)
+
     if settings.openai_api_key:
-        generated = _answer_with_openai(question, sources, settings, user_profile)
+        generated, safe_error = _answer_with_openai(
+            question,
+            sources,
+            settings,
+            user_profile,
+        )
         if generated:
             return AssistantResponse(
                 answer=generated,
@@ -90,6 +102,7 @@ def answer_question(
                 used_model=settings.openai_model,
                 ai_mode="online",
                 retrieval_mode=retrieval_mode,
+                retrieval_warning=retrieval_warning,
             )
         return AssistantResponse(
             answer=_offline_answer(question, sources, user_profile),
@@ -101,6 +114,9 @@ def answer_question(
                 "A IA online não pôde ser usada neste momento. "
                 "O sistema respondeu com o modo offline."
             ),
+            retrieval_warning=retrieval_warning,
+            safe_error_type=safe_error.safe_error_type if safe_error else None,
+            safe_error_message=safe_error.safe_error_message if safe_error else None,
         )
 
     return AssistantResponse(
@@ -109,6 +125,7 @@ def answer_question(
         used_model="offline-fallback",
         ai_mode="offline",
         retrieval_mode=retrieval_mode,
+        retrieval_warning=retrieval_warning,
     )
 
 
@@ -119,6 +136,47 @@ def _retrieval_mode(rag: Any) -> str:
             "last_retrieval_mode",
             getattr(rag, "retrieval_mode", "TF-IDF"),
         )
+    )
+
+
+def _combined_retrieval_warning(
+    rag: Any,
+    sources: list[RetrievedDocument],
+) -> str | None:
+    warnings = []
+    safe_error_message = getattr(rag, "last_safe_error_message", None)
+    if safe_error_message:
+        warnings.append(
+            "Embeddings indisponíveis nesta resposta; o sistema usou TF-IDF. "
+            f"Motivo: {safe_error_message}"
+        )
+    low_score_warning = _retrieval_warning(sources)
+    if low_score_warning:
+        warnings.append(low_score_warning)
+    return " ".join(warnings) if warnings else None
+
+
+def _retrieval_warning(
+    sources: list[RetrievedDocument],
+    threshold: float = 0.12,
+) -> str | None:
+    if not sources:
+        return None
+    if max(source.score for source in sources) < threshold:
+        return (
+            "A resposta pode estar limitada porque a base encontrou baixa "
+            "similaridade com a pergunta."
+        )
+    return None
+
+
+def _log_openai_failure(message: str, exc: Exception) -> None:
+    safe_error = safe_error_from_exception(exc)
+    logger.warning(
+        "%s; using offline fallback: %s: %s",
+        message,
+        safe_error.safe_error_type,
+        safe_error.safe_error_message,
     )
 
 
@@ -172,18 +230,18 @@ def _answer_with_openai(
     sources: list[RetrievedDocument],
     settings: Settings,
     user_profile: dict[str, Any] | None,
-) -> str | None:
+) -> tuple[str | None, SafeAIError | None]:
     try:
         from openai import OpenAI
     except ImportError as exc:
-        logger.warning("OpenAI SDK is not installed; using offline fallback: %s", exc)
-        return None
+        _log_openai_failure("OpenAI SDK is not installed", exc)
+        return None, safe_error_from_exception(exc, settings.openai_api_key)
 
     try:
         client = OpenAI(api_key=settings.openai_api_key)
     except Exception as exc:
-        logger.warning("OpenAI client initialization failed; using offline fallback: %s", exc)
-        return None
+        _log_openai_failure("OpenAI client initialization failed", exc)
+        return None, safe_error_from_exception(exc, settings.openai_api_key)
 
     context = "\n\n".join(
         "Fonte: "
@@ -192,22 +250,32 @@ def _answer_with_openai(
         for source in sources
     )
     profile = _format_profile(user_profile)
-    prompt = (
-        f"{SYSTEM_PROMPT}\n\n"
+    user_prompt = (
         f"Perfil selecionado:\n{profile}\n\n"
         f"Contexto recuperado:\n{context}\n\n"
         f"Pergunta: {question}"
     )
     try:
-        response = client.responses.create(
+        response = client.chat.completions.create(
             model=settings.openai_model,
-            input=prompt,
+            messages=[
+                {"role": "system", "content": SYSTEM_PROMPT},
+                {"role": "user", "content": user_prompt},
+            ],
             temperature=0.2,
         )
     except Exception as exc:
-        logger.warning("OpenAI response generation failed; using offline fallback: %s", exc)
-        return None
-    return response.output_text
+        _log_openai_failure("OpenAI response generation failed", exc)
+        return None, safe_error_from_exception(exc, settings.openai_api_key)
+
+    answer = response.choices[0].message.content if response.choices else None
+    if not answer or not answer.strip():
+        logger.warning("OpenAI response was empty; using offline fallback")
+        return None, SafeAIError(
+            safe_error_type="EmptyResponse",
+            safe_error_message="A IA online retornou uma resposta vazia.",
+        )
+    return answer.strip(), None
 
 
 def _profile_note(user_profile: dict[str, Any] | None) -> str:
@@ -246,7 +314,7 @@ def _format_profile(user_profile: dict[str, Any] | None) -> str:
 def _summarize_sources(sources: list[RetrievedDocument]) -> str:
     snippets = []
     for source in sources:
-        clean_excerpt = source.excerpt.rstrip(".")
+        clean_excerpt = _strip_urls(source.excerpt).rstrip(".")
         snippets.append(f"{clean_excerpt} [{_source_label(source)}]")
     return " ".join(snippets)
 
@@ -331,6 +399,10 @@ def _practical_action_from_sources(sources: list[RetrievedDocument]) -> str:
         "Revise as fontes internas citadas e transforme um ponto recuperado em uma "
         "atividade prática pequena, observável e registrada."
     )
+
+
+def _strip_urls(text: str) -> str:
+    return re.sub(r"https?://\S+", "[URL removida da explicação]", text)
 
 
 def _format_sources(sources: list[RetrievedDocument]) -> str:

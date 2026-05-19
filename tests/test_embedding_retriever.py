@@ -41,6 +41,8 @@ def test_router_uses_tfidf_when_no_api_key() -> None:
 
     assert results
     assert router.last_retrieval_mode == "TF-IDF"
+    assert router.last_safe_error_type is None
+    assert router.last_safe_error_message is None
 
 
 def test_embedding_retriever_uses_mocked_embeddings_and_writes_cache(
@@ -88,6 +90,24 @@ def test_embedding_retriever_reads_existing_cache(tmp_path, monkeypatch) -> None
     assert cache_path.exists()
 
 
+def test_router_auto_uses_embeddings_when_available(tmp_path, monkeypatch) -> None:
+    monkeypatch.setitem(sys.modules, "openai", SimpleNamespace(OpenAI=_FakeOpenAIClient))
+    tfidf = RAGPipeline.from_documents(_documents(), min_score=0.0)
+    router = RetrievalRouter(
+        tfidf_retriever=tfidf,
+        mode="Auto",
+        openai_api_key="test-key",
+        cache_path=tmp_path / "embeddings.json",
+    )
+
+    results = router.retrieve("beta", top_k=1)
+
+    assert results[0].source_filename == "beta.md"
+    assert router.last_retrieval_mode == "Embeddings"
+    assert router.last_safe_error_type is None
+    assert router.last_safe_error_message is None
+
+
 def test_embedding_failure_falls_back_to_tfidf(tmp_path, monkeypatch) -> None:
     monkeypatch.setitem(
         sys.modules,
@@ -106,6 +126,9 @@ def test_embedding_failure_falls_back_to_tfidf(tmp_path, monkeypatch) -> None:
 
     assert results
     assert router.last_retrieval_mode == "TF-IDF"
+    assert router.last_safe_error_type == "RuntimeError"
+    assert router.last_safe_error_message is not None
+    assert "test-key" not in router.last_safe_error_message
 
 
 def _documents() -> list[KnowledgeDocument]:

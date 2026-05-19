@@ -9,6 +9,7 @@ from typing import Literal
 
 import numpy as np
 
+from src.ai.diagnostics import safe_error_from_exception
 from src.knowledge.loader import KnowledgeDocument
 from src.knowledge.rag import DEFAULT_MIN_SCORE, DEFAULT_TOP_K, RAGPipeline, RetrievedDocument, excerpt
 
@@ -22,6 +23,11 @@ EmbeddingMode = Literal["Auto", "TF-IDF", "Embeddings"]
 
 class EmbeddingRetrievalError(RuntimeError):
     """Raised when embedding retrieval cannot be completed safely."""
+
+    def __init__(self, safe_error_type: str, safe_error_message: str) -> None:
+        super().__init__(safe_error_message)
+        self.safe_error_type = safe_error_type
+        self.safe_error_message = safe_error_message
 
 
 @dataclass(frozen=True)
@@ -115,7 +121,11 @@ class EmbeddingRetriever:
                 input=texts,
             )
         except Exception as exc:
-            raise EmbeddingRetrievalError(str(exc)) from exc
+            safe_error = safe_error_from_exception(exc, self.api_key)
+            raise EmbeddingRetrievalError(
+                safe_error.safe_error_type,
+                safe_error.safe_error_message,
+            ) from exc
         return [list(item.embedding) for item in response.data]
 
     def _load_cache(self) -> dict[str, EmbeddingCacheItem]:
@@ -191,6 +201,8 @@ class RetrievalRouter:
         self.embedding_model = embedding_model
         self.cache_path = cache_path
         self.last_retrieval_mode = "TF-IDF"
+        self.last_safe_error_type: str | None = None
+        self.last_safe_error_message: str | None = None
 
     def retrieve(
         self,
@@ -200,6 +212,8 @@ class RetrievalRouter:
     ) -> list[RetrievedDocument]:
         if self.mode == "TF-IDF" or not self.openai_api_key:
             self.last_retrieval_mode = "TF-IDF"
+            self.last_safe_error_type = None
+            self.last_safe_error_message = None
             return self.tfidf_retriever.retrieve(query, top_k=top_k, min_score=min_score)
 
         try:
@@ -212,13 +226,17 @@ class RetrievalRouter:
             )
             results = embedding_retriever.retrieve(query, top_k=top_k, min_score=min_score)
             self.last_retrieval_mode = "Embeddings"
+            self.last_safe_error_type = None
+            self.last_safe_error_message = None
             return results
         except EmbeddingRetrievalError as exc:
             logger.warning(
                 "Embedding retrieval failed; falling back to TF-IDF retrieval: %s",
-                exc,
+                exc.safe_error_message,
             )
             self.last_retrieval_mode = "TF-IDF"
+            self.last_safe_error_type = exc.safe_error_type
+            self.last_safe_error_message = exc.safe_error_message
             return self.tfidf_retriever.retrieve(query, top_k=top_k, min_score=min_score)
 
 
