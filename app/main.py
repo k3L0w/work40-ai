@@ -35,6 +35,7 @@ from src.knowledge.embedding_retriever import RetrievalRouter
 from src.knowledge.loader import load_documents
 from src.knowledge.rag import RAGPipeline, RetrievedDocument
 from src.ui.markdown_export import build_markdown_report, build_section_markdown
+from src.ui.theme import app_theme_css, badge, paragraph
 from src.utils.config import Settings, get_settings
 
 
@@ -74,58 +75,7 @@ def get_rag_pipeline() -> RAGPipeline:
 
 
 def render_page_styles() -> None:
-    st.markdown(
-        """
-        <style>
-        .block-container {padding-top: 2rem; padding-bottom: 3rem;}
-        div[data-testid="stMetric"] {
-            background: #ffffff;
-            border: 1px solid #d9e2ec;
-            border-radius: 8px;
-            padding: 14px 16px;
-            color: #0f172a;
-        }
-        div[data-testid="stMetric"] label,
-        div[data-testid="stMetric"] [data-testid="stMetricValue"] {
-            color: #0f172a;
-        }
-        div[data-testid="stMetricLabel"] {font-weight: 650;}
-        .w40-hero {
-            border: 1px solid #d9e2ec;
-            border-radius: 8px;
-            padding: 30px 32px;
-            background: linear-gradient(135deg, #f8fafc 0%, #eef6f3 100%);
-            color: #0f172a;
-            margin-bottom: 18px;
-        }
-        .w40-hero h1 {
-            margin-bottom: 8px;
-            color: #0f172a;
-            letter-spacing: 0;
-        }
-        .w40-hero p {font-size: 1.02rem; color: #334155; max-width: 900px;}
-        .w40-hero strong {color: #0f766e;}
-        .w40-eyebrow {
-            color: #0f766e;
-            font-weight: 750;
-            text-transform: uppercase;
-            font-size: 0.78rem;
-            margin-bottom: 8px;
-        }
-        .w40-section-note {color: #64748b; margin-top: -8px;}
-        @media (prefers-color-scheme: dark) {
-            div[data-testid="stMetric"] {
-                background: #f8fafc;
-                border-color: #cbd5e1;
-            }
-            .w40-hero {
-                background: linear-gradient(135deg, #f8fafc 0%, #e6f4ef 100%);
-            }
-        }
-        </style>
-        """,
-        unsafe_allow_html=True,
-    )
+    st.markdown(app_theme_css(), unsafe_allow_html=True)
 
 
 def _current_ai_health(settings: Settings) -> AIHealthStatus:
@@ -189,21 +139,36 @@ def render_ai_status_sidebar(settings: Settings, profile: dict[str, object]) -> 
 
 
 def render_hero(profile: dict[str, object], ai_mode: str) -> None:
+    retrieval_mode = st.session_state.get("last_retrieval_mode", "TF-IDF")
+    status_badges = "".join(
+        [
+            badge(f"IA {ai_mode}"),
+            badge(f"Retrieval {retrieval_mode}"),
+            badge("RAG ativo"),
+            badge("Base expandida"),
+        ]
+    )
     st.markdown(
         f"""
         <section class="w40-hero">
-            <div class="w40-eyebrow">MVP de inteligencia de carreira</div>
-            <h1>Work4.0 AI</h1>
-            <p>
-                Diagnostico de competencias, prontidao para Industria 4.0,
-                simulacao de impacto da automacao e planos praticos para
-                estudantes, profissionais, professores e equipes de RH.
-            </p>
-            <p>
-                Perfil ativo: <strong>{profile['role']}</strong> | IA:
-                <strong>{ai_mode}</strong> | Objetivo:
-                <strong>{profile['career_goal']}</strong>
-            </p>
+            <div class="w40-hero-content">
+                <div class="w40-product-badge">AI Career Intelligence</div>
+                <h1>Work4.0 AI</h1>
+                <h2>Inteligência de carreira para a era da Indústria 4.0</h2>
+                <p>
+                    Diagnóstico de competências, prontidão digital, simulação de
+                    automação e planos práticos com RAG, IA online opcional e
+                    fallback offline seguro.
+                </p>
+                <div class="w40-status-row">{status_badges}</div>
+                <div class="w40-badge-row">
+                    {badge(f"Perfil {profile['role']}")}
+                    {badge(f"Objetivo {profile['career_goal']}")}
+                </div>
+            </div>
+            <div class="w40-orb-stage" aria-hidden="true">
+                <div class="w40-orb"></div>
+            </div>
         </section>
         """,
         unsafe_allow_html=True,
@@ -211,6 +176,15 @@ def render_hero(profile: dict[str, object], ai_mode: str) -> None:
 
 
 def render_sidebar() -> dict[str, object]:
+    st.sidebar.markdown(
+        """
+        <div class="w40-sidebar-brand">
+            <strong>Work4.0 AI</strong>
+            <span>Console de inteligência de carreira</span>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
     st.sidebar.title("Configurar perfil")
     st.sidebar.caption("Ajuste os dados para personalizar diagnostico, plano e RAG.")
     role = st.sidebar.selectbox(
@@ -352,7 +326,10 @@ def render_key_metrics(
         st.session_state.get("last_retrieval_mode", "TF-IDF"),
     )
     st.progress(readiness.score / 100)
-    st.caption(readiness.summary)
+    st.markdown(
+        f'<p class="w40-score-summary">{paragraph(readiness.summary)}</p>',
+        unsafe_allow_html=True,
+    )
 
 
 def render_overview(
@@ -443,7 +420,11 @@ def render_assistant_tab(
     if answer:
         ai_mode = st.session_state.get("last_ai_mode", "offline")
         retrieval_used = st.session_state.get("last_retrieval_mode", "TF-IDF")
-        st.caption(f"Modo usado na ultima resposta: IA {ai_mode} | Retrieval {retrieval_used}")
+        st.markdown(
+            f'<div class="w40-mode-line">{badge(f"IA {ai_mode}")}'
+            f'{badge(f"Retrieval {retrieval_used}")}</div>',
+            unsafe_allow_html=True,
+        )
         if st.session_state.get("last_ai_warning"):
             st.warning(str(st.session_state["last_ai_warning"]))
         if st.session_state.get("last_safe_error_message"):
@@ -466,12 +447,24 @@ def render_structured_answer(answer: str) -> None:
     st.subheader("Resposta estruturada")
     sections = split_answer_sections(answer)
     if not sections:
-        st.write(answer)
+        st.markdown(
+            f'<div class="w40-answer-card"><p>{paragraph(answer)}</p></div>',
+            unsafe_allow_html=True,
+        )
         return
     for title, content in sections.items():
-        with st.container(border=True):
-            st.markdown(f"**{title}**")
-            st.write(content or "Sem conteudo adicional.")
+        st.markdown(
+            """
+            <article class="w40-answer-card">
+                <h3>{title}</h3>
+                <p>{content}</p>
+            </article>
+            """.format(
+                title=paragraph(title),
+                content=paragraph(content or "Sem conteudo adicional."),
+            ),
+            unsafe_allow_html=True,
+        )
 
 
 def split_answer_sections(answer: str) -> dict[str, str]:
@@ -505,16 +498,28 @@ def render_sources(sources: list[RetrievedDocument]) -> None:
     if not sources:
         st.info("Nenhuma fonte relevante foi retornada para esta resposta.")
         return
-    for source in sources:
-        with st.container(border=True):
-            meta_col, score_col = st.columns([0.75, 0.25])
-            meta_col.markdown(f"**{source.title}**")
-            meta_col.caption(
-                f"Caminho `{source.source_path}` | categoria `{source.category}` | "
-                f"chunk `{source.chunk_index}`"
+    with st.expander("Ver fontes recuperadas", expanded=True):
+        st.markdown('<div class="w40-source-grid">', unsafe_allow_html=True)
+        for source in sources:
+            st.markdown(
+                """
+                <article class="w40-source-card">
+                    <h4>{title}</h4>
+                    <p class="w40-source-meta">{path} · categoria {category} · chunk {chunk}</p>
+                    <p class="w40-source-meta">Score {score:.4f}</p>
+                    <p>{excerpt}</p>
+                </article>
+                """.format(
+                    title=paragraph(source.title),
+                    path=paragraph(source.source_path),
+                    category=paragraph(source.category),
+                    chunk=paragraph(source.chunk_index),
+                    score=source.score,
+                    excerpt=paragraph(source.excerpt[:420]),
+                ),
+                unsafe_allow_html=True,
             )
-            score_col.metric("Score", f"{source.score:.4f}")
-            st.write(source.excerpt[:420])
+        st.markdown('</div>', unsafe_allow_html=True)
 
 
 def render_diagnosis_tab(

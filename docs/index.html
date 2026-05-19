@@ -5,9 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta
       name="description"
-      content="Work4.0 AI e uma plataforma Streamlit para inteligencia de carreira, diagnostico de competencias e planejamento para a era da Industria 4.0."
+      content="Work4.0 AI e uma plataforma Streamlit para inteligencia de carreira, diagnostico de competencias, RAG e planejamento para a era da Industria 4.0."
     />
-    <title>Work4.0 AI | Inteligencia de Carreira para a Era da Industria 4.0</title>
+    <title>Work4.0 AI | AI Career Intelligence</title>
     <link rel="stylesheet" href="assets/style.css" />
   </head>
   <body>
@@ -27,136 +27,115 @@
     <main id="top">
       <section class="hero" aria-labelledby="hero-title">
         <div class="hero-content">
-          <p class="eyebrow">Career intelligence for Industry 4.0</p>
-          <h1 id="hero-title">
-            Work4.0 AI — Inteligencia de Carreira para a Era da Industria 4.0
-          </h1>
+          <p class="badge">AI Career Intelligence</p>
+          <h1 id="hero-title">Work4.0 AI</h1>
+          <p class="hero-subtitle">Inteligencia de carreira para a era da Industria 4.0</p>
           <p class="hero-copy">
-            Um MVP em Streamlit para diagnosticar competencias, entender impactos
-            da automacao, gerar planos de estudo e apoiar professores e equipes de
-            RH com orientacoes praticas, RAG e fallback offline.
+            Um MVP futurista em Streamlit para diagnosticar competencias, entender
+            impactos da automacao, gerar planos de estudo e conversar com um
+            assistente RAG com IA online opcional e fallback offline.
           </p>
+          <div class="status-row" aria-label="Status do produto">
+            <span>RAG ativo</span>
+            <span>OpenAI opcional</span>
+            <span>Fallback offline</span>
+            <span>Markdown export</span>
+          </div>
           <div class="hero-actions" aria-label="Acoes principais">
-            <a class="button button-primary" href="STREAMLIT_APP_URL">Abrir app Streamlit</a>
-            <a class="button button-secondary" href="GITHUB_REPOSITORY_URL">Ver repositorio</a>
+            <a class="button button-primary" href="STREAMLIT_APP_URL">Acessar aplicação</a>
+            <a class="button button-secondary" href="GITHUB_REPOSITORY_URL">Ver GitHub</a>
           </div>
         </div>
+        <div class="orb-stage" aria-hidden="true">
+          <div class="orb"></div>
+        </div>
       </section>
 
-      <section class="section metrics" aria-label="Indicadores do produto">
-        <article>
-          <strong>100% MVP friendly</strong>
-          <span>Sem banco de dados, sem infraestrutura paga obrigatoria.</span>
-        </article>
-        <article>
-          <strong>Offline-first</strong>
-          <span>Funciona sem chave da OpenAI usando respostas deterministicas.</span>
-        </article>
-        <article>
-          <strong>RAG com fontes</strong>
-          <span>Respostas com base interna e citacoes de arquivos e chunks.</span>
-        </article>
+      <section class="signal-strip" aria-label="Indicadores do produto">
+        <article><strong>Offline-first</strong><span>Funciona sem infraestrutura paga obrigatoria.</span></article>
+        <article><strong>Fonte citavel</strong><span>RAG com arquivos, chunks e scores.</span></article>
+        <article><strong>Startup MVP</strong><span>Streamlit, testes, lint e deploy simples.</span></article>
       </section>
 
-      <section id="produto" class="section two-column">
+      <section id="produto" class="section split">
         <div>
-          <p class="eyebrow">Problema</p>
-          <h2>Carreiras estao mudando mais rapido que os planos de aprendizagem.</h2>
+          <p class="eyebrow">Produto</p>
+          <h2>Um cockpit de carreira para mudancas aceleradas por IA.</h2>
         </div>
-        <div class="copy-block">
+        <div class="glass-panel copy-block">
           <p>
-            Estudantes, trabalhadores, professores e empresas precisam entender
-            como IA, automacao, robotica, dados e transformacao digital afetam
-            tarefas, competencias e oportunidades de desenvolvimento.
+            Work4.0 AI ajuda estudantes, trabalhadores, professores e equipes de
+            RH a transformar sinais de automacao, IA, robotica e dados em
+            diagnosticos, trilhas de aprendizagem e proximas acoes praticas.
           </p>
           <p>
-            O desafio nao e prever o futuro com certezas absolutas. O desafio e
-            transformar sinais de mudanca em diagnostico, aprendizado aplicado e
-            evidencias de progresso.
+            O foco nao e prometer futuro ou emprego. O foco e dar clareza,
+            evidencias e um plano de evolucao profissional responsavel.
           </p>
         </div>
       </section>
 
-      <section class="section solution-grid" aria-labelledby="solution-title">
+      <section id="features" class="section">
         <div class="section-heading">
-          <p class="eyebrow">Solucao</p>
-          <h2 id="solution-title">Uma camada pratica de inteligencia de carreira.</h2>
+          <p class="eyebrow">Features</p>
+          <h2>Inteligencia aplicada, nao apenas uma tela bonita.</h2>
           <p>
-            Work4.0 AI combina diagnostico, simulacao, planejamento e assistente
-            RAG para apoiar decisoes de aprendizagem e reskilling.
+            O MVP combina diagnostico, simulacao, planejamento e assistente RAG
+            em uma experiencia unica, modular e pronta para demonstracao.
           </p>
         </div>
-        <article class="panel">
-          <h3>Diagnosticar</h3>
-          <p>Mapeia pontos fortes, lacunas, prioridades e prontidao Work4.0.</p>
-        </article>
-        <article class="panel">
-          <h3>Simular</h3>
-          <p>Identifica tarefas mais expostas a automacao e atividades humanas criticas.</p>
-        </article>
-        <article class="panel">
-          <h3>Planejar</h3>
-          <p>Gera trilhas semanais, entregaveis e planos de 30/60/90 dias.</p>
-        </article>
+        <div class="feature-grid">
+          <article class="glass-panel"><h3>Assistente RAG</h3><p>Respostas em portugues com contexto recuperado, fontes internas e fallback seguro.</p></article>
+          <article class="glass-panel"><h3>Skills Diagnosis</h3><p>Mapeia pontos fortes, lacunas e competencias prioritarias para a meta informada.</p></article>
+          <article class="glass-panel"><h3>Readiness Score</h3><p>Calcula prontidao digital, IA, automacao, adaptabilidade e score geral Work4.0.</p></article>
+          <article class="glass-panel"><h3>Automation Simulator</h3><p>Mostra tarefas expostas, atividades humanas criticas, risco e oportunidade.</p></article>
+          <article class="glass-panel"><h3>Study Path</h3><p>Gera trilha semanal, entregaveis, projeto de portfolio e plano 30/60/90 dias.</p></article>
+          <article class="glass-panel"><h3>Teacher e HR Modes</h3><p>Cria materiais de aula e roadmap de capacitacao para equipes e empresas.</p></article>
+        </div>
       </section>
 
       <section class="section audiences" aria-labelledby="audiences-title">
         <div class="section-heading">
-          <p class="eyebrow">Publicos-alvo</p>
-          <h2 id="audiences-title">Projetado para aprendizagem, carreira e gestao.</h2>
+          <p class="eyebrow">Publicos</p>
+          <h2 id="audiences-title">Uma base, quatro modos de uso.</h2>
         </div>
-        <div class="card-grid four">
-          <article class="panel"><h3>Estudantes</h3><p>Escolhem competencias e projetos de portfolio.</p></article>
-          <article class="panel"><h3>Trabalhadores</h3><p>Reposicionam experiencia para tarefas de maior valor.</p></article>
-          <article class="panel"><h3>Professores</h3><p>Criam planos de aula, debates e projetos praticos.</p></article>
-          <article class="panel"><h3>Empresas/RH</h3><p>Planejam reskilling, pilotos e indicadores de sucesso.</p></article>
+        <div class="mini-grid">
+          <article class="glass-panel"><span>01</span><h3>Estudantes</h3><p>Escolhem competencias e constroem portfolio.</p></article>
+          <article class="glass-panel"><span>02</span><h3>Trabalhadores</h3><p>Reposicionam experiencia para tarefas de maior valor.</p></article>
+          <article class="glass-panel"><span>03</span><h3>Professores</h3><p>Geram aulas, debates e projetos praticos.</p></article>
+          <article class="glass-panel"><span>04</span><h3>Empresas/RH</h3><p>Planejam reskilling, pilotos e indicadores.</p></article>
         </div>
-      </section>
-
-      <section id="features" class="section feature-list" aria-labelledby="features-title">
-        <div class="section-heading">
-          <p class="eyebrow">Features</p>
-          <h2 id="features-title">O que o MVP entrega.</h2>
-        </div>
-        <div class="feature-grid">
-          <article><h3>Assistente RAG</h3><p>Responde em portugues com contexto recuperado e fontes internas.</p></article>
-          <article><h3>Skills Diagnosis</h3><p>Avalia alfabetizacao digital, Python, dados, IA, automacao, portfolio e soft skills.</p></article>
-          <article><h3>Readiness Score</h3><p>Calcula prontidao digital, IA, automacao, adaptabilidade e score geral.</p></article>
-          <article><h3>Automation Simulator</h3><p>Mostra tarefas automatizaveis, tarefas humanas, risco, oportunidade e plano.</p></article>
-          <article><h3>Study Path</h3><p>Organiza trilha semanal, objetivos, entregaveis e projeto de portfolio.</p></article>
-          <article><h3>Teacher e HR Modes</h3><p>Gera materiais para aula e roadmap de implementacao corporativa.</p></article>
-        </div>
-      </section>
-
-      <section class="section workflow" aria-labelledby="workflow-title">
-        <div class="section-heading">
-          <p class="eyebrow">Workflow</p>
-          <h2 id="workflow-title">Do perfil ao plano de acao.</h2>
-        </div>
-        <ol class="steps">
-          <li><span>01</span><strong>Configure o perfil</strong><p>Informe objetivo, nivel, maturidade, horas e competencias.</p></li>
-          <li><span>02</span><strong>Diagnostique</strong><p>Receba lacunas, prioridades e score Work4.0.</p></li>
-          <li><span>03</span><strong>Simule impacto</strong><p>Analise tarefas expostas e oportunidades de redesenho.</p></li>
-          <li><span>04</span><strong>Execute o plano</strong><p>Use trilha semanal, 30/60/90 dias e export Markdown.</p></li>
-        </ol>
       </section>
 
       <section id="arquitetura" class="section architecture">
         <div class="section-heading">
           <p class="eyebrow">Arquitetura</p>
-          <h2>Simples, modular e pronta para demonstracao.</h2>
+          <h2>Modular, testavel e pronta para Codespaces.</h2>
           <p>
-            A interface Streamlit consome regras deterministicas em <code>src/features</code>,
-            RAG em <code>src/knowledge</code>, geracao/fallback em <code>src/ai</code> e export
-            em <code>src/ui</code>.
+            A interface Streamlit consome regras deterministicas, RAG, geracao
+            OpenAI opcional, fallback offline e export Markdown sem exigir
+            infraestrutura paga para a demonstracao.
           </p>
         </div>
         <div class="architecture-map" aria-label="Visao da arquitetura">
-          <div>Streamlit UI<br /><small>app/main.py</small></div>
-          <div>Feature Engine<br /><small>skills, readiness, planning</small></div>
-          <div>RAG Layer<br /><small>TF-IDF + knowledge base</small></div>
-          <div>AI Layer<br /><small>OpenAI opcional + fallback offline</small></div>
+          <div><strong>Streamlit UI</strong><small>app/main.py</small></div>
+          <div><strong>Feature Engine</strong><small>skills, readiness, planning</small></div>
+          <div><strong>Knowledge Layer</strong><small>TF-IDF + embeddings auto</small></div>
+          <div><strong>AI Layer</strong><small>OpenAI + fallback offline</small></div>
         </div>
+      </section>
+
+      <section class="section workflow">
+        <div class="section-heading">
+          <p class="eyebrow">Workflow</p>
+          <h2>Do perfil ao plano de acao.</h2>
+        </div>
+        <ol class="steps">
+          <li><span>01</span><strong>Configure</strong><p>Perfil, objetivo, maturidade, horas e competencias.</p></li>
+          <li><span>02</span><strong>Diagnostique</strong><p>Lacunas, prioridades e readiness score.</p></li>
+          <li><span>03</span><strong>Simule</strong><p>Tarefas expostas e oportunidades de redesenho.</p></li>
+          <li><span>04</span><strong>Execute</strong><p>Trilha semanal, 30/60/90 dias e export Markdown.</p></li>
+        </ol>
       </section>
 
       <section class="section stack" aria-labelledby="stack-title">
@@ -172,31 +151,18 @@
         </div>
       </section>
 
-      <section class="section screenshots" aria-labelledby="screenshots-title">
-        <div class="section-heading">
-          <p class="eyebrow">Screenshots</p>
-          <h2 id="screenshots-title">Placeholders para evidencias visuais.</h2>
-          <p>Substitua estes blocos por capturas do app antes de publicar no LinkedIn ou portfolio.</p>
-        </div>
-        <div class="screenshot-grid">
-          <figure><div class="placeholder">Visao geral do app</div><figcaption>Hero, metricas e abas principais.</figcaption></figure>
-          <figure><div class="placeholder">Diagnostico e readiness</div><figcaption>Scores, lacunas e prioridades.</figcaption></figure>
-          <figure><div class="placeholder">Assistente RAG</div><figcaption>Resposta estruturada e fontes internas.</figcaption></figure>
-        </div>
-      </section>
-
       <section id="deploy" class="section final-cta">
         <p class="eyebrow">Comece agora</p>
         <h2>Teste o MVP, revise o codigo e adapte para seu contexto.</h2>
         <div class="hero-actions">
-          <a class="button button-primary" href="STREAMLIT_APP_URL">Abrir app Streamlit</a>
-          <a class="button button-secondary" href="GITHUB_REPOSITORY_URL">Ver repositorio GitHub</a>
+          <a class="button button-primary" href="STREAMLIT_APP_URL">Acessar aplicação</a>
+          <a class="button button-secondary" href="GITHUB_REPOSITORY_URL">Ver GitHub</a>
         </div>
       </section>
     </main>
 
     <footer class="footer">
-      <p>Work4.0 AI — MVP educacional e profissional para Industria 4.0.</p>
+      <p>Work4.0 AI - MVP educacional e profissional para Industria 4.0.</p>
       <p>Sem promessas de emprego, sem previsoes absolutas e sem segredos no repositorio.</p>
     </footer>
   </body>
