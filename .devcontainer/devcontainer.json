@@ -1,12 +1,11 @@
 {
   "name": "Work4.0 AI Codespace",
   "image": "mcr.microsoft.com/devcontainers/python:3.11",
-
   "features": {
     "ghcr.io/devcontainers/features/git:1": {},
-    "ghcr.io/devcontainers/features/github-cli:1": {}
+    "ghcr.io/devcontainers/features/github-cli:1": {},
+    "ghcr.io/devcontainers/features/git-lfs:1": {}
   },
-
   "customizations": {
     "vscode": {
       "extensions": [
@@ -27,11 +26,10 @@
       }
     }
   },
-
   "postCreateCommand": "python -m pip install --upgrade pip && if [ -f requirements.txt ]; then pip install -r requirements.txt; fi",
-
-  "forwardPorts": [8501],
-
+  "forwardPorts": [
+    8501
+  ],
   "portsAttributes": {
     "8501": {
       "label": "Work4.0 AI Streamlit App",
