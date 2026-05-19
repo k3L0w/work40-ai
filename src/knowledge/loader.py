@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 
 
@@ -15,6 +15,10 @@ class KnowledgeDocument:
     source_path: str
     source_filename: str
     chunk_index: int
+    category: str = "geral"
+    source_type: str = "curated_note"
+    last_reviewed: str = ""
+    metadata: dict[str, str] = field(default_factory=dict)
 
 
 def load_documents(
@@ -23,13 +27,17 @@ def load_documents(
     chunk_overlap: int = DEFAULT_CHUNK_OVERLAP,
 ) -> list[KnowledgeDocument]:
     documents: list[KnowledgeDocument] = []
-    for file_path in sorted(path.glob("*.md")):
-        content = file_path.read_text(encoding="utf-8").strip()
-        if not content:
+    for file_path in sorted(path.rglob("*.md")):
+        raw_content = file_path.read_text(encoding="utf-8").strip()
+        if not raw_content:
             continue
-        title = extract_title(content, file_path.stem)
+        metadata, content = parse_frontmatter(raw_content)
+        clean_content = content.strip()
+        if not clean_content:
+            continue
+        title = metadata.get("title") or extract_title(clean_content, file_path.stem)
         chunks = split_markdown_text(
-            content,
+            clean_content,
             chunk_size=chunk_size,
             chunk_overlap=chunk_overlap,
         )
@@ -41,9 +49,30 @@ def load_documents(
                     source_path=str(file_path),
                     source_filename=file_path.name,
                     chunk_index=index,
+                    category=metadata.get("category", "geral"),
+                    source_type=metadata.get("source_type", "curated_note"),
+                    last_reviewed=metadata.get("last_reviewed", ""),
+                    metadata=metadata,
                 )
             )
     return documents
+
+
+def parse_frontmatter(content: str) -> tuple[dict[str, str], str]:
+    lines = content.splitlines()
+    if not lines or lines[0].strip() != "---":
+        return {}, content
+
+    metadata: dict[str, str] = {}
+    for index, line in enumerate(lines[1:], start=1):
+        if line.strip() == "---":
+            body = "\n".join(lines[index + 1 :]).strip()
+            return metadata, body
+        if ":" not in line:
+            continue
+        key, value = line.split(":", 1)
+        metadata[key.strip()] = value.strip().strip('"').strip("'")
+    return {}, content
 
 
 def split_markdown_text(
@@ -81,4 +110,4 @@ def extract_title(content: str, fallback: str) -> str:
         stripped = line.strip()
         if stripped.startswith("# "):
             return stripped.removeprefix("# ").strip()
-    return fallback.replace("-", " ").title()
+    return fallback.replace("-", " ").replace("_", " ").title()

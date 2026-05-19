@@ -156,3 +156,6 @@ venv/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# Local RAG embedding cache
+data/.cache/

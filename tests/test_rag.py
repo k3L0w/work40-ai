@@ -4,7 +4,7 @@ from types import SimpleNamespace
 
 
 from src.ai.assistant import ANSWER_SECTIONS, LOW_CONFIDENCE_ANSWER, answer_question
-from src.knowledge.loader import load_documents, split_markdown_text
+from src.knowledge.loader import load_documents, parse_frontmatter, split_markdown_text
 from src.knowledge.rag import RAGPipeline
 from src.utils.config import Settings
 
@@ -15,7 +15,40 @@ def test_load_documents_reads_markdown_with_metadata() -> None:
     assert docs
     assert docs[0].title
     assert docs[0].source_filename.endswith(".md")
+    assert docs[0].category
+    assert docs[0].source_type
+    assert docs[0].last_reviewed
     assert docs[0].chunk_index >= 0
+
+
+def test_load_documents_reads_nested_markdown_files() -> None:
+    docs = load_documents(Path("data/knowledge"), chunk_size=220, chunk_overlap=40)
+
+    assert any("industria_40" in document.source_path for document in docs)
+    assert any("ia_generativa" in document.source_path for document in docs)
+    assert any(document.source_filename == "00_manifesto.md" for document in docs)
+
+
+def test_frontmatter_metadata_extraction() -> None:
+    content = """---
+title: Teste
+category: teste
+source_type: curated_note
+last_reviewed: 2026-05-19
+---
+
+# Teste
+
+Corpo do documento.
+"""
+
+    metadata, body = parse_frontmatter(content)
+
+    assert metadata["title"] == "Teste"
+    assert metadata["category"] == "teste"
+    assert metadata["source_type"] == "curated_note"
+    assert metadata["last_reviewed"] == "2026-05-19"
+    assert body.startswith("# Teste")
 
 
 def test_splitter_uses_overlap_and_skips_empty_chunks() -> None:
@@ -37,7 +70,16 @@ def test_rag_retrieves_relevant_document_with_scores() -> None:
     assert results
     assert len(results) <= 2
     assert results[0].score > 0
-    assert any("automation.md" == result.source_filename for result in results)
+    assert any(
+        result.category in {"automacao_robotica", "futuro_do_trabalho"}
+        for result in results
+    )
+    assert any(
+        "tarefa" in result.excerpt.lower() or "autom" in result.excerpt.lower()
+        for result in results
+    )
+    assert all(result.category for result in results)
+    assert all(result.source_path.endswith(".md") for result in results)
     assert all(result.chunk_index >= 0 for result in results)
 
 
@@ -115,6 +157,17 @@ def test_assistant_rejects_retrieval_below_generation_threshold() -> None:
     assert response.sources == []
 
 
+def test_retrieval_returns_nested_source_metadata() -> None:
+    docs = load_documents(Path("data/knowledge"))
+    rag = RAGPipeline.from_documents(docs, min_score=0.03)
+
+    results = rag.retrieve("guardrails privacidade vies IA generativa", top_k=3)
+
+    assert results
+    assert any("ia_generativa" in result.source_path for result in results)
+    assert any(result.category == "ia_generativa" for result in results)
+
+
 def test_assistant_cites_internal_sources() -> None:
     docs = load_documents(Path("data/knowledge"))
     rag = RAGPipeline.from_documents(docs)
@@ -124,7 +177,7 @@ def test_assistant_cites_internal_sources() -> None:
 
     assert "Fontes internas usadas" in response.answer
     assert any(
-        f"{source.source_filename}#chunk-{source.chunk_index}" in response.answer
+        f"{source.source_path}#chunk-{source.chunk_index}" in response.answer
         for source in response.sources
     )
 

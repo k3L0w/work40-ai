@@ -30,6 +30,7 @@ from src.features.planning import (
 )
 from src.features.readiness import ReadinessScore, calculate_readiness_score
 from src.features.skills import SkillDiagnosis, diagnose_skills
+from src.knowledge.embedding_retriever import RetrievalRouter
 from src.knowledge.loader import load_documents
 from src.knowledge.rag import RAGPipeline, RetrievedDocument
 from src.ui.markdown_export import build_markdown_report, build_section_markdown
@@ -187,6 +188,13 @@ def render_sidebar() -> dict[str, object]:
         SKILL_OPTIONS,
         default=["Dados", "Comunicacao"],
     )
+    retrieval_mode = st.sidebar.radio(
+        "Modo de recuperacao",
+        ["Auto", "TF-IDF", "Embeddings"],
+        help=(
+            "Auto usa embeddings quando ha chave OpenAI; se falhar, volta para TF-IDF."
+        ),
+    )
     main_tasks_text = st.sidebar.text_area(
         "Principais tarefas",
         value="preencher relatorio\nconferir dados\nresolver problemas operacionais",
@@ -202,6 +210,7 @@ def render_sidebar() -> dict[str, object]:
         "weekly_hours": weekly_hours,
         "timeframe_weeks": timeframe_weeks,
         "selected_skills": selected_skills,
+        "retrieval_mode": retrieval_mode,
         "main_tasks": [
             line.strip() for line in main_tasks_text.splitlines() if line.strip()
         ],
@@ -249,6 +258,7 @@ def build_view_model(
     )
     configured_mode = "online" if settings.openai_api_key else "offline"
     ai_mode = str(st.session_state.get("last_ai_mode", configured_mode))
+    retrieval_mode = str(st.session_state.get("last_retrieval_mode", "TF-IDF"))
     metrics = build_dashboard_metrics(st.session_state, str(profile["role"]), ai_mode)
     return {
         "diagnosis": diagnosis,
@@ -260,6 +270,7 @@ def build_view_model(
         "teacher_plan": teacher_plan,
         "hr_plan": hr_plan,
         "ai_mode": ai_mode,
+        "retrieval_mode": retrieval_mode,
         "metrics": metrics,
     }
 
@@ -270,11 +281,15 @@ def render_key_metrics(
     diagnosis: SkillDiagnosis,
     ai_mode: str,
 ) -> None:
-    score_col, impact_col, priority_col, mode_col = st.columns(4)
+    score_col, impact_col, priority_col, mode_col, retrieval_col = st.columns(5)
     score_col.metric("Work4.0 Score", f"{readiness.score}/100")
     impact_col.metric("Risco de automacao", impact.risk_level)
     priority_col.metric("Skills prioritarias", len(diagnosis.priority_skills))
     mode_col.metric("Modo IA", ai_mode)
+    retrieval_col.metric(
+        "Retrieval",
+        st.session_state.get("last_retrieval_mode", "TF-IDF"),
+    )
     st.progress(readiness.score / 100)
     st.caption(readiness.summary)
 
@@ -322,6 +337,14 @@ def render_assistant_tab(
     for index, question in enumerate(EXAMPLE_QUESTIONS):
         if example_cols[index].button(question, key=f"example_question_{index}"):
             st.session_state["rag_question"] = question
+    retrieval_mode = str(profile.get("retrieval_mode", "Auto"))
+    retriever = RetrievalRouter(
+        tfidf_retriever=rag,
+        mode=retrieval_mode,
+        openai_api_key=settings.openai_api_key,
+        embedding_model=settings.openai_embedding_model,
+    )
+    st.caption(f"Modo de recuperacao selecionado: {retrieval_mode}")
     st.session_state.setdefault("rag_question", EXAMPLE_QUESTIONS[0])
     st.text_area(
         "Sua pergunta",
@@ -333,7 +356,7 @@ def render_assistant_tab(
     if ask_col.button("Responder", type="primary", use_container_width=True):
         response = answer_question(
             str(st.session_state["rag_question"]),
-            rag,
+            retriever,
             settings,
             user_profile=profile,
         )
@@ -341,6 +364,7 @@ def render_assistant_tab(
         st.session_state["last_answer"] = response.answer
         st.session_state["last_sources"] = response.sources
         st.session_state["last_ai_mode"] = response.ai_mode
+        st.session_state["last_retrieval_mode"] = response.retrieval_mode
         st.session_state["last_ai_warning"] = response.warning
     hint_col.caption("Use perguntas especificas para obter citacoes mais precisas.")
 
@@ -348,7 +372,8 @@ def render_assistant_tab(
     sources = st.session_state.get("last_sources", [])
     if answer:
         ai_mode = st.session_state.get("last_ai_mode", "offline")
-        st.caption(f"Modo usado na ultima resposta: {ai_mode}")
+        retrieval_used = st.session_state.get("last_retrieval_mode", "TF-IDF")
+        st.caption(f"Modo usado na ultima resposta: IA {ai_mode} | Retrieval {retrieval_used}")
         if st.session_state.get("last_ai_warning"):
             st.warning(str(st.session_state["last_ai_warning"]))
         if answer == LOW_CONFIDENCE_ANSWER:
@@ -408,7 +433,8 @@ def render_sources(sources: list[RetrievedDocument]) -> None:
             meta_col, score_col = st.columns([0.75, 0.25])
             meta_col.markdown(f"**{source.title}**")
             meta_col.caption(
-                f"Arquivo `{source.source_filename}` | chunk `{source.chunk_index}`"
+                f"Caminho `{source.source_path}` | categoria `{source.category}` | "
+                f"chunk `{source.chunk_index}`"
             )
             score_col.metric("Score", f"{source.score:.4f}")
             st.write(source.excerpt)
@@ -568,6 +594,7 @@ def render_metrics_dashboard(profile: dict[str, object], ai_mode: str) -> None:
     col_d, col_e = st.columns(2)
     col_d.metric("Modo IA", metrics.ai_mode)
     col_e.metric("Perfil selecionado", metrics.selected_profile)
+    st.metric("Retrieval da ultima resposta", st.session_state.get("last_retrieval_mode", "TF-IDF"))
     render_list_card(st, "Skills mais recomendadas", metrics.most_recommended_skills)
 
 

@@ -58,6 +58,7 @@ class AssistantResponse:
     sources: list[RetrievedDocument]
     used_model: str
     ai_mode: str
+    retrieval_mode: str
     warning: str | None = None
 
 
@@ -70,12 +71,14 @@ def answer_question(
     min_retrieval_score: float = DEFAULT_MIN_SCORE,
 ) -> AssistantResponse:
     sources = rag.retrieve(question, top_k=top_k)
+    retrieval_mode = _retrieval_mode(rag)
     if not _has_sufficient_context(sources, min_retrieval_score):
         return AssistantResponse(
             answer=LOW_CONFIDENCE_ANSWER,
             sources=[],
             used_model="offline-fallback",
             ai_mode="offline",
+            retrieval_mode=retrieval_mode,
         )
 
     if settings.openai_api_key:
@@ -86,12 +89,14 @@ def answer_question(
                 sources=sources,
                 used_model=settings.openai_model,
                 ai_mode="online",
+                retrieval_mode=retrieval_mode,
             )
         return AssistantResponse(
             answer=_offline_answer(question, sources, user_profile),
             sources=sources,
             used_model="offline-fallback",
             ai_mode="fallback",
+            retrieval_mode=retrieval_mode,
             warning=(
                 "A IA online não pôde ser usada neste momento. "
                 "O sistema respondeu com o modo offline."
@@ -103,6 +108,17 @@ def answer_question(
         sources=sources,
         used_model="offline-fallback",
         ai_mode="offline",
+        retrieval_mode=retrieval_mode,
+    )
+
+
+def _retrieval_mode(rag: Any) -> str:
+    return str(
+        getattr(
+            rag,
+            "last_retrieval_mode",
+            getattr(rag, "retrieval_mode", "TF-IDF"),
+        )
     )
 
 
@@ -171,8 +187,8 @@ def _answer_with_openai(
 
     context = "\n\n".join(
         "Fonte: "
-        f"{source.title} ({source.source_filename}, chunk {source.chunk_index}, "
-        f"score {source.score})\n{source.excerpt}"
+        f"{source.title} ({source.source_path}, categoria {source.category}, "
+        f"chunk {source.chunk_index}, score {source.score})\n{source.excerpt}"
         for source in sources
     )
     profile = _format_profile(user_profile)
@@ -324,4 +340,4 @@ def _format_sources(sources: list[RetrievedDocument]) -> str:
 
 
 def _source_label(source: RetrievedDocument) -> str:
-    return f"{source.source_filename}#chunk-{source.chunk_index}"
+    return f"{source.source_path}#chunk-{source.chunk_index}"

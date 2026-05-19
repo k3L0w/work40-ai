@@ -21,6 +21,9 @@ class RetrievedDocument:
     source_path: str
     source_filename: str
     chunk_index: int
+    category: str = "geral"
+    source_type: str = "curated_note"
+    last_reviewed: str = ""
 
 
 class RAGPipeline:
@@ -77,6 +80,9 @@ class RAGPipeline:
                     source_path=document.source_path,
                     source_filename=document.source_filename,
                     chunk_index=document.chunk_index,
+                    category=document.category,
+                    source_type=document.source_type,
+                    last_reviewed=document.last_reviewed,
                 )
             )
             if len(results) >= top_k:
