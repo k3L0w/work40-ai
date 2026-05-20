@@ -353,6 +353,34 @@ div[data-testid="stVerticalBlockBorderWrapper"] {
   background: var(--w40-panel);
   box-shadow: 0 16px 54px rgba(0, 0, 0, 0.26), inset 0 1px 0 rgba(255, 255, 255, 0.08);
   backdrop-filter: blur(18px);
+  transition:
+    transform 230ms ease,
+    border-color 230ms ease,
+    box-shadow 230ms ease,
+    background 230ms ease,
+    filter 230ms ease;
+}
+
+div[data-testid="stMetric"]:hover,
+.w40-glass-card:hover,
+.w40-answer-card:hover,
+.w40-source-card:hover,
+div[data-testid="stVerticalBlockBorderWrapper"]:hover {
+  transform: translateY(-3px);
+  border-color: rgba(126, 231, 255, 0.42);
+  background:
+    linear-gradient(145deg, rgba(24, 32, 65, 0.82), rgba(14, 18, 39, 0.76));
+  box-shadow:
+    0 0 0 1px rgba(126, 231, 255, 0.08),
+    0 18px 58px rgba(0, 0, 0, 0.32),
+    0 0 28px rgba(99, 230, 255, 0.13),
+    0 0 38px rgba(168, 85, 247, 0.1),
+    inset 0 1px 0 rgba(255, 255, 255, 0.1);
+  filter: saturate(1.05);
+}
+
+.w40-answer-card:hover {
+  border-color: rgba(168, 85, 247, 0.5);
 }
 
 div[data-testid="stMetric"] {
@@ -556,6 +584,22 @@ button[data-baseweb="tab"][aria-selected="true"] {
 
   .w40-orb-particle {
     opacity: 0.35;
+  }
+
+  div[data-testid="stMetric"],
+  .w40-glass-card,
+  .w40-answer-card,
+  .w40-source-card,
+  div[data-testid="stVerticalBlockBorderWrapper"] {
+    transition: none !important;
+  }
+
+  div[data-testid="stMetric"]:hover,
+  .w40-glass-card:hover,
+  .w40-answer-card:hover,
+  .w40-source-card:hover,
+  div[data-testid="stVerticalBlockBorderWrapper"]:hover {
+    transform: none !important;
   }
 }
 </style>
