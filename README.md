@@ -9,6 +9,12 @@ O app foi pensado para apresentacoes no SENAI, portfolio no GitHub, publicacao n
 LinkedIn e avaliacao por recrutadores. Ele funciona offline por padrao e usa a
 OpenAI apenas quando `OPENAI_API_KEY` esta configurada de forma segura.
 
+## Links de producao
+
+- Streamlit app: <https://work40-ai.streamlit.app>
+- GitHub Pages landing page: <https://k3l0w.github.io/work40-ai/>
+- GitHub repository: <https://github.com/k3L0w/work40-ai>
+
 ## Product Pitch
 
 Profissionais, estudantes, professores e equipes de RH precisam transformar a
@@ -188,6 +194,7 @@ A landing page esta em:
 
 - `docs/index.html`
 - `docs/assets/style.css`
+- <https://k3l0w.github.io/work40-ai/>
 
 Para publicar:
 
@@ -197,10 +204,8 @@ Para publicar:
 4. Escolha a pasta `/docs`.
 5. Salve.
 
-Antes de divulgar, substitua em `docs/index.html`:
-
-- `STREAMLIT_APP_URL`
-- `GITHUB_REPOSITORY_URL`
+Os botoes da landing page apontam para o app em producao e para o repositorio
+oficial.
 
 ## Demo Questions
 
@@ -241,7 +246,7 @@ Para conferir a landing page, abra `docs/index.html` diretamente no navegador.
 - O simulador e os scores sao heuristicas de MVP, nao previsoes de mercado.
 - O fallback offline e deterministico e menos flexivel que um modelo generativo.
 - A base RAG e pequena e deve ser expandida para uso real.
-- Links da landing page ainda precisam ser substituidos pelos URLs finais.
+- Links de producao configurados para Streamlit, GitHub Pages e repositorio.
 
 ## Documentacao extra
 
