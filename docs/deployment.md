@@ -20,7 +20,7 @@ Confirme tambem:
 - `docs/index.html` abre como pagina estatica.
 - `docs/assets/style.css` carrega corretamente.
 - `.env` nao foi commitado.
-- Links placeholders `STREAMLIT_APP_URL` e `GITHUB_REPOSITORY_URL` foram revisados antes da divulgacao publica.
+- Links de producao foram configurados em `docs/index.html` para Streamlit e GitHub.
 - Perguntas de demo em `docs/demo_questions.md` foram testadas.
 - Script em `docs/demo_script.md` foi ensaiado.
 
@@ -62,18 +62,12 @@ A landing page fica em `/docs`, pronta para GitHub Pages.
 5. Em folder, escolha `/docs`.
 6. Salve.
 
-Apos o GitHub publicar a pagina, atualize `docs/index.html`:
-
-```html
-<a href="STREAMLIT_APP_URL">Abrir app Streamlit</a>
-<a href="GITHUB_REPOSITORY_URL">Ver repositorio</a>
-```
-
-Substitua por URLs reais, por exemplo:
+Os links de producao ja estao configurados em `docs/index.html`:
 
 ```text
-https://seu-app.streamlit.app
-https://github.com/seu-usuario/work40-ai
+Streamlit app: https://work40-ai.streamlit.app
+GitHub Pages: https://k3l0w.github.io/work40-ai/
+GitHub repository: https://github.com/k3L0w/work40-ai
 ```
 
 ## 4. Codespaces
@@ -104,9 +98,9 @@ ou consumir uma chave de API.
 
 Depois de publicar:
 
-1. Substitua `STREAMLIT_APP_URL` em `docs/index.html` pela URL real do Streamlit.
-2. Substitua `GITHUB_REPOSITORY_URL` pela URL real do repositorio.
-3. Abra a landing page em desktop e mobile.
+1. Abra a landing page em desktop e mobile.
+2. Confirme o botao **Acessar aplicacao** em <https://work40-ai.streamlit.app>.
+3. Confirme o botao **Ver GitHub** em <https://github.com/k3L0w/work40-ai>.
 4. Teste o app publicado sem secrets para confirmar o modo offline.
 5. Teste novamente com secrets, se for demonstrar modo online.
 

@@ -46,8 +46,8 @@
 
 - [ ] `docs/index.html` abre no navegador.
 - [ ] `docs/assets/style.css` carrega.
-- [ ] `STREAMLIT_APP_URL` foi substituido antes da publicacao final.
-- [ ] `GITHUB_REPOSITORY_URL` foi substituido antes da publicacao final.
+- [ ] Botao **Acessar aplicacao** aponta para <https://work40-ai.streamlit.app>.
+- [ ] Botao **Ver GitHub** aponta para <https://github.com/k3L0w/work40-ai>.
 - [ ] Placeholders de screenshots foram substituidos ou mantidos conscientemente.
 
 ## Apresentacao
@@ -55,5 +55,6 @@
 - [ ] Demo de 5 a 7 minutos ensaiada.
 - [ ] Perguntas exemplo testadas.
 - [ ] Modo offline testado.
-- [ ] Link do Streamlit validado.
-- [ ] Link do GitHub Pages validado.
+- [ ] Link do Streamlit validado: <https://work40-ai.streamlit.app>.
+- [ ] Link do GitHub Pages validado: <https://k3l0w.github.io/work40-ai/>.
+- [ ] Link do repositorio validado: <https://github.com/k3L0w/work40-ai>.
