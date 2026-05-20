@@ -348,6 +348,9 @@ div[data-testid="stMetric"],
 .w40-answer-card,
 .w40-source-card,
 div[data-testid="stVerticalBlockBorderWrapper"] {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
   border: 1px solid var(--w40-line);
   border-radius: 16px;
   background: var(--w40-panel);
@@ -359,6 +362,51 @@ div[data-testid="stVerticalBlockBorderWrapper"] {
     box-shadow 230ms ease,
     background 230ms ease,
     filter 230ms ease;
+}
+
+div[data-testid="stMetric"]::before,
+.w40-glass-card::before,
+.w40-answer-card::before,
+.w40-source-card::before,
+div[data-testid="stVerticalBlockBorderWrapper"]::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  padding: 1px;
+  border-radius: inherit;
+  background:
+    linear-gradient(
+      120deg,
+      rgba(99, 230, 255, 0.26),
+      rgba(91, 140, 255, 0.24),
+      rgba(168, 85, 247, 0.28),
+      rgba(255, 77, 109, 0.2),
+      rgba(99, 230, 255, 0.26)
+    );
+  background-size: 280% 280%;
+  opacity: 0.12;
+  pointer-events: none;
+  animation: w40-card-border-flow 16s linear infinite;
+  animation-play-state: paused;
+  transition: opacity 230ms ease;
+  -webkit-mask:
+    linear-gradient(#000 0 0) content-box,
+    linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask:
+    linear-gradient(#000 0 0) content-box,
+    linear-gradient(#000 0 0);
+  mask-composite: exclude;
+}
+
+div[data-testid="stMetric"] > *,
+.w40-glass-card > *,
+.w40-answer-card > *,
+.w40-source-card > *,
+div[data-testid="stVerticalBlockBorderWrapper"] > * {
+  position: relative;
+  z-index: 1;
 }
 
 div[data-testid="stMetric"]:hover,
@@ -381,6 +429,21 @@ div[data-testid="stVerticalBlockBorderWrapper"]:hover {
 
 .w40-answer-card:hover {
   border-color: rgba(168, 85, 247, 0.5);
+}
+
+div[data-testid="stMetric"]:hover::before,
+.w40-glass-card:hover::before,
+.w40-answer-card:hover::before,
+.w40-source-card:hover::before,
+div[data-testid="stVerticalBlockBorderWrapper"]:hover::before {
+  opacity: 0.72;
+  animation-play-state: running;
+}
+
+@keyframes w40-card-border-flow {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
 }
 
 div[data-testid="stMetric"] {
@@ -592,6 +655,14 @@ button[data-baseweb="tab"][aria-selected="true"] {
   .w40-source-card,
   div[data-testid="stVerticalBlockBorderWrapper"] {
     transition: none !important;
+  }
+
+  div[data-testid="stMetric"]::before,
+  .w40-glass-card::before,
+  .w40-answer-card::before,
+  .w40-source-card::before,
+  div[data-testid="stVerticalBlockBorderWrapper"]::before {
+    animation: none !important;
   }
 
   div[data-testid="stMetric"]:hover,
