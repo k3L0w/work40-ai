@@ -50,8 +50,20 @@ def app_theme_css() -> str:
 
 .block-container {
   max-width: 1280px;
-  padding-top: 2rem;
-  padding-bottom: 3rem;
+  padding: clamp(1.6rem, 2.8vw, 2.45rem) clamp(1.25rem, 3vw, 2.25rem) 3.5rem;
+}
+
+.block-container [data-testid="stVerticalBlock"] {
+  gap: clamp(0.85rem, 1.4vw, 1.15rem);
+}
+
+.block-container [data-testid="stHorizontalBlock"] {
+  gap: clamp(1rem, 1.8vw, 1.45rem);
+  margin-bottom: clamp(0.35rem, 1vw, 0.75rem);
+}
+
+[role="tabpanel"] {
+  padding-top: clamp(1rem, 1.8vw, 1.4rem);
 }
 
 h1, h2, h3, h4, h5, h6, p, li, label, span {
@@ -345,7 +357,7 @@ div[data-testid="stVerticalBlockBorderWrapper"] {
 
 div[data-testid="stMetric"] {
   min-height: 118px;
-  padding: 18px 18px;
+  padding: clamp(1.1rem, 1.6vw, 1.35rem);
   border-color: rgba(99, 230, 255, 0.26);
 }
 
@@ -366,19 +378,19 @@ div[data-testid="stMetric"] [data-testid="stMetricValue"] {
 }
 
 .w40-score-summary {
-  margin: 12px 0 22px;
+  margin: 14px 0 28px;
   color: #c8d5f7;
 }
 
 .w40-glass-card,
 .w40-answer-card,
 .w40-source-card {
-  padding: 18px;
+  padding: clamp(1.1rem, 1.65vw, 1.4rem);
 }
 
 .w40-answer-card {
   max-width: 920px;
-  margin-bottom: 12px;
+  margin-bottom: clamp(0.9rem, 1.4vw, 1.15rem);
   border-color: rgba(168, 85, 247, 0.28);
 }
 
@@ -397,12 +409,22 @@ div[data-testid="stMetric"] [data-testid="stMetricValue"] {
 .w40-source-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-  gap: 12px;
+  gap: clamp(0.95rem, 1.6vw, 1.25rem);
+  margin-top: 0.35rem;
 }
 
 .w40-source-meta {
   color: #91a3d7;
   font-size: 0.82rem;
+}
+
+div[data-testid="stVerticalBlockBorderWrapper"] {
+  padding: clamp(1rem, 1.5vw, 1.25rem);
+  margin-bottom: clamp(0.75rem, 1.25vw, 1rem);
+}
+
+.w40-source-card {
+  margin-bottom: 0.25rem;
 }
 
 /* sidebar */
@@ -411,6 +433,18 @@ div[data-testid="stMetric"] [data-testid="stMetricValue"] {
     radial-gradient(circle at 30% 10%, rgba(168, 85, 247, 0.22), transparent 16rem),
     linear-gradient(180deg, #080b18 0%, #0c1022 100%);
   border-right: 1px solid rgba(99, 230, 255, 0.16);
+}
+
+[data-testid="stSidebarContent"] {
+  padding: 1.15rem 1.15rem 1.6rem;
+}
+
+[data-testid="stSidebarContent"] [data-testid="stVerticalBlock"] {
+  gap: 0.85rem;
+}
+
+[data-testid="stSidebarContent"] hr {
+  margin: 1.15rem 0;
 }
 
 [data-testid="stSidebar"] h1,
@@ -427,8 +461,8 @@ div[data-testid="stMetric"] [data-testid="stMetricValue"] {
 }
 
 .w40-sidebar-brand {
-  padding: 14px 14px 12px;
-  margin-bottom: 12px;
+  padding: 16px 16px 14px;
+  margin-bottom: 16px;
   border: 1px solid rgba(99, 230, 255, 0.18);
   border-radius: 16px;
   background: rgba(18, 23, 45, 0.62);
@@ -488,6 +522,10 @@ button[data-baseweb="tab"][aria-selected="true"] {
   .w40-hero {
     grid-template-columns: 1fr;
     padding: 28px;
+  }
+
+  .block-container {
+    padding-inline: 1rem;
   }
 
   .w40-orb-stage {
